@@ -37,8 +37,9 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.tag }}"
           if [ -z "$TAG" ]; then
+            # 注意：不要用 head -1 截断管道，-o pipefail 下上游 git 会因 SIGPIPE 让整步失败
             TAG=$(git ls-remote --tags --sort=-v:refname https://github.com/lyswhut/lx-music-desktop.git \
-                  | grep -v '\^{}' | head -1 | sed 's#.*refs/tags/##')
+                  | sed -n 's#.*refs/tags/\(.*\)$#\1#p' | grep -v '\^{}' | sed -n '1p')
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
