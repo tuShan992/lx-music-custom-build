@@ -1,0 +1,12 @@
+{
+  "name": "lx-custom-build-gui",
+  "version": "1.0.0",
+  "description": "获取 lx-music-desktop 最新源码并应用本地补丁后构建",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "42.11.6"
+  }
+}

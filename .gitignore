@@ -1,0 +1,5 @@
+# 构建过程产物，别提交
+.cache/
+.home/
+work/
+out/

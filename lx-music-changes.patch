@@ -1,0 +1,1400 @@
+diff --git a/build-config/build-pack.js b/build-config/build-pack.js
+index 5cc09d4..ae201dd 100644
+--- a/build-config/build-pack.js
++++ b/build-config/build-pack.js
+@@ -266,6 +266,10 @@ const createTarget = {
+  * @param {*} packageType 包类型
+  * @param {'onTagOrDraft' | 'always' | 'never'} publishType 发布类型
+  */
++// 允许通过环境变量指定 electron 下载镜像或本地 electron 发行目录，便于离线/加速构建
++if (process.env.LX_ELECTRON_MIRROR) options.electronDownload = { ...(options.electronDownload ?? {}), mirror: process.env.LX_ELECTRON_MIRROR }
++if (process.env.LX_ELECTRON_DIST) options.electronDist = process.env.LX_ELECTRON_DIST
++
+ const build = async(target, arch, packageType, publishType) => {
+   if (target == 'dir') {
+     await builder.build({
+diff --git a/src/lang/en-us.json b/src/lang/en-us.json
+index bf9484a..61ef14e 100644
+--- a/src/lang/en-us.json
++++ b/src/lang/en-us.json
+@@ -64,6 +64,7 @@
+   "download__quality": "Quality",
+   "download__running": "Downloading",
+   "download__status": "Status",
++  "download__use_default_dir": "Use default location",
+   "download_status_error_check_path": "There is an error in checking the download path. Please check whether the set download directory is normal",
+   "download_status_error_check_path_exist": "A file with the same name exists. The download has been skipped",
+   "download_status_error_refresh_url": "The link is dead, refreshing...",
+@@ -194,6 +195,8 @@
+   "music_sort__title": "Adjust the position of \"{name}\" to: ",
+   "music_sort__title_multiple": "Adjust the position of the selected {num} songs to: ",
+   "music_time": "Length",
++  "select_all": "Select all",
++  "cancel_select_all": "Deselect all",
+   "music_toggle_clean": "Cancel Change",
+   "music_toggle_confirm": "Confirm",
+   "music_toggle_duplicate_tip": "The same song already exists in the list, should I remove it and continue?",
+@@ -731,6 +734,9 @@
+   "user_api__btn_import": "Import from Local File",
+   "user_api__btn_import_online": "Import from Network",
+   "user_api__btn_remove": "Remove",
++  "user_api__btn_remove_all": "Delete All",
++  "user_api__remove_all_confirm": "Are you sure you want to delete all Music APIs? This cannot be undone.",
++  "user_api__importing": "Importing Music APIs, please wait...",
+   "user_api__import_file": "Choose Music API script file",
+   "user_api__init_failed_alert": "Failed to initialize Music API \"{name}\": ",
+   "user_api__max_tip": "There can only be a maximum of 20 APIs at the same time🤪.\n\nIf you want to continue importing, please remove some unnecessary APIs to make room.",
+@@ -744,5 +750,15 @@
+   "user_api_import_online__input_confirm": "Import",
+   "user_api_import_online__input_loading": "Importing...",
+   "user_api_import_online__input_tip": "Please enter an HTTP link",
+-  "user_api_import_online__title": "Import Music API from network."
++  "user_api_import_online__title": "Import Music API from network.",
++  "user_api__btn_one_click_import": "One-Click Import",
++  "user_api_one_click__title": "One-Click Import Music APIs",
++  "user_api_one_click__only_available": "Only import available APIs",
++  "user_api_one_click__use_proxy": "Use proxy links (for users who cannot access GitHub)",
++  "user_api_one_click__tip": "When checked, only available APIs are selected; when unchecked, all are selected by default.\nStatus updated at {time} (Beijing time)",
++  "user_api_one_click__loading": "Loading API list...",
++  "user_api_one_click__load_failed": "Failed to load API list:\n{message}",
++  "user_api_one_click__import": "Import",
++  "user_api_one_click__import_success": "Successfully imported {ok} API(s)",
++  "user_api_one_click__import_result": "Import finished: {ok} succeeded, {fail} failed\n\n{detail}"
+ }
+diff --git a/src/lang/ko-kr.json b/src/lang/ko-kr.json
+index eb6b6ae..460ba12 100644
+--- a/src/lang/ko-kr.json
++++ b/src/lang/ko-kr.json
+@@ -64,6 +64,7 @@
+   "download__quality": "음질",
+   "download__running": "다운로드 중",
+   "download__status": "상태",
++  "download__use_default_dir": "기본 위치 사용",
+   "download_status_error_check_path": "다운로드 경로 확인 중 오류가 발생했습니다. 설정한 다운로드 폴더가 정상인지 확인해 주세요",
+   "download_status_error_check_path_exist": "동일한 이름의 파일이 존재하여 다운로드를 건너뛰었습니다",
+   "download_status_error_refresh_url": "링크가 만료되어 새로고침 중...",
+@@ -194,6 +195,8 @@
+   "music_sort__title": "\"{name}\"의 위치를 다음으로 조정: ",
+   "music_sort__title_multiple": "선택한 {num}곡의 위치를 다음으로 조정: ",
+   "music_time": "길이",
++  "select_all": "전체 선택",
++  "cancel_select_all": "전체 선택 해제",
+   "music_toggle_clean": "변경 취소",
+   "music_toggle_confirm": "확인",
+   "music_toggle_duplicate_tip": "목록에 동일한 곡이 이미 존재합니다. 삭제하고 계속할까요?",
+@@ -731,6 +734,9 @@
+   "user_api__btn_import": "로컬 파일에서 가져오기",
+   "user_api__btn_import_online": "네트워크에서 가져오기",
+   "user_api__btn_remove": "삭제",
++  "user_api__btn_remove_all": "모두 삭제",
++  "user_api__remove_all_confirm": "모든 음악 API를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
++  "user_api__importing": "음악 API를 가져오는 중입니다. 잠시만 기다려 주세요...",
+   "user_api__import_file": "음악 API 스크립트 파일을 선택하세요",
+   "user_api__init_failed_alert": "음악 API \"{name}\" 초기화 실패: ",
+   "user_api__max_tip": "동시에 최대 20개의 API만 사용할 수 있습니다🤪.\n\n계속 가져오려면 불필요한 API를 삭제하여 공간을 확보해 주세요.",
+@@ -744,5 +750,15 @@
+   "user_api_import_online__input_confirm": "가져오기",
+   "user_api_import_online__input_loading": "가져오는 중...",
+   "user_api_import_online__input_tip": "HTTP 링크를 입력하세요",
+-  "user_api_import_online__title": "네트워크에서 음악 API 가져오기"
++  "user_api_import_online__title": "네트워크에서 음악 API 가져오기",
++  "user_api__btn_one_click_import": "원클릭 가져오기",
++  "user_api_one_click__title": "음악 API 원클릭 가져오기",
++  "user_api_one_click__only_available": "사용 가능한 음악 소스만 가져오기",
++  "user_api_one_click__use_proxy": "가속 링크 사용 (GitHub 접속이 제한된 사용자용)",
++  "user_api_one_click__tip": "체크 시 사용 가능한 음악 소스만 선택되며, 체크 해제 시 기본적으로 전체 선택됩니다.\n상태 업데이트: {time} (베이징 시간)",
++  "user_api_one_click__loading": "음악 소스 목록을 가져오는 중...",
++  "user_api_one_click__load_failed": "음악 소스 목록을 가져오지 못했습니다:\n{message}",
++  "user_api_one_click__import": "가져오기",
++  "user_api_one_click__import_success": "{ok}개의 음악 소스를 성공적으로 가져왔습니다",
++  "user_api_one_click__import_result": "가져오기 완료: 성공 {ok}개, 실패 {fail}개\n\n{detail}"
+ }
+diff --git a/src/lang/zh-cn.json b/src/lang/zh-cn.json
+index cc98c60..52a36be 100644
+--- a/src/lang/zh-cn.json
++++ b/src/lang/zh-cn.json
+@@ -64,6 +64,7 @@
+   "download__quality": "品质",
+   "download__running": "正在下载",
+   "download__status": "状态",
++  "download__use_default_dir": "使用默认位置",
+   "download_status_error_check_path": "检查下载路径出错，请检查设置的下载目录是否正常",
+   "download_status_error_check_path_exist": "存在同名文件，跳过下载",
+   "download_status_error_refresh_url": "链接失效，正在刷新链接",
+@@ -194,6 +195,8 @@
+   "music_sort__title": "将「{name}」的位置调整到：",
+   "music_sort__title_multiple": "将已选的 {num} 首歌曲的位置调整到：",
+   "music_time": "时长",
++  "select_all": "全选",
++  "cancel_select_all": "取消全选",
+   "music_toggle_clean": "取消换源",
+   "music_toggle_confirm": "确认",
+   "music_toggle_duplicate_tip": "列表中已存在相同的歌曲，是否将其移除并继续？",
+@@ -731,6 +734,9 @@
+   "user_api__btn_import": "本地导入",
+   "user_api__btn_import_online": "在线导入",
+   "user_api__btn_remove": "移除",
++  "user_api__btn_remove_all": "删除全部",
++  "user_api__remove_all_confirm": "确定要删除全部自定义源吗？此操作不可恢复。",
++  "user_api__importing": "正在导入音源，请稍候...",
+   "user_api__import_file": "选择自定义源 API 脚本文件",
+   "user_api__init_failed_alert": "自定义源「{name}」初始化失败：",
+   "user_api__max_tip": "最多只能同时存在 20 个源哦🤪\n想要继续导入的话，请先移除一些旧的源腾出位置吧",
+@@ -744,5 +750,15 @@
+   "user_api_import_online__input_confirm": "导入",
+   "user_api_import_online__input_loading": "导入中...",
+   "user_api_import_online__input_tip": "请输入 HTTP 链接",
+-  "user_api_import_online__title": "在线导入自定义源"
++  "user_api_import_online__title": "在线导入自定义源",
++  "user_api__btn_one_click_import": "一键导入",
++  "user_api_one_click__title": "一键导入音源",
++  "user_api_one_click__only_available": "仅导入可用音源",
++  "user_api_one_click__use_proxy": "使用加速链接（供访问 GitHub 受限的用户使用）",
++  "user_api_one_click__tip": "勾选时仅选择可用音源；取消勾选后默认全选。\n状态更新于 {time}（北京时间）",
++  "user_api_one_click__loading": "正在获取音源列表...",
++  "user_api_one_click__load_failed": "获取音源列表失败：\n{message}",
++  "user_api_one_click__import": "导入",
++  "user_api_one_click__import_success": "成功导入 {ok} 个音源",
++  "user_api_one_click__import_result": "导入完成：成功 {ok} 个，失败 {fail} 个\n\n{detail}"
+ }
+diff --git a/src/lang/zh-tw.json b/src/lang/zh-tw.json
+index 7fdbcd9..77e2aed 100644
+--- a/src/lang/zh-tw.json
++++ b/src/lang/zh-tw.json
+@@ -64,6 +64,7 @@
+   "download__quality": "品質",
+   "download__running": "正在下載",
+   "download__status": "狀態",
++  "download__use_default_dir": "使用預設位置",
+   "download_status_error_check_path": "檢查下載路徑出錯，請檢查設定的下載目錄是否正常",
+   "download_status_error_check_path_exist": "存在同名檔案，跳過下載",
+   "download_status_error_refresh_url": "連結失效，正在重新整理連結",
+@@ -194,6 +195,8 @@
+   "music_sort__title": "將「{name}」的位置調整到：",
+   "music_sort__title_multiple": "將已選取的 {num} 首歌曲的位置調整到：",
+   "music_time": "長度",
++  "select_all": "全選",
++  "cancel_select_all": "取消全選",
+   "music_toggle_clean": "取消變更",
+   "music_toggle_confirm": "確認",
+   "music_toggle_duplicate_tip": "列表中已存在相同的歌曲，是否將其移除並繼續？",
+@@ -731,6 +734,9 @@
+   "user_api__btn_import": "從本機匯入",
+   "user_api__btn_import_online": "從線上匯入",
+   "user_api__btn_remove": "移除",
++  "user_api__btn_remove_all": "刪除全部",
++  "user_api__remove_all_confirm": "確定要刪除全部自訂來源嗎？此操作無法復原。",
++  "user_api__importing": "正在匯入自訂來源，請稍候...",
+   "user_api__import_file": "選取自訂來源 API 腳本檔案",
+   "user_api__init_failed_alert": "自訂來源 API「{name}」初始化失敗：",
+   "user_api__max_tip": "最多只能同時存在 20 個 API 哦🤪\n想要繼續匯入的話，請先移除一些舊的 API 騰出位置吧",
+@@ -744,5 +750,15 @@
+   "user_api_import_online__input_confirm": "匯入",
+   "user_api_import_online__input_loading": "匯入中...",
+   "user_api_import_online__input_tip": "請輸入 HTTP 連結",
+-  "user_api_import_online__title": "從線上匯入自訂來源 API"
++  "user_api_import_online__title": "從線上匯入自訂來源 API",
++  "user_api__btn_one_click_import": "一鍵匯入",
++  "user_api_one_click__title": "一鍵匯入音源",
++  "user_api_one_click__only_available": "僅匯入可用音源",
++  "user_api_one_click__use_proxy": "使用加速連結（供存取 GitHub 受限的使用者使用）",
++  "user_api_one_click__tip": "勾選時僅選擇可用音源；取消勾選後預設全選。\n狀態更新於 {time}（北京時間）",
++  "user_api_one_click__loading": "正在取得音源清單...",
++  "user_api_one_click__load_failed": "取得音源清單失敗：\n{message}",
++  "user_api_one_click__import": "匯入",
++  "user_api_one_click__import_success": "成功匯入 {ok} 個音源",
++  "user_api_one_click__import_result": "匯入完成：成功 {ok} 個，失敗 {fail} 個\n\n{detail}"
+ }
+diff --git a/src/renderer/assets/styles/index.less b/src/renderer/assets/styles/index.less
+index 1e15d45..e1c6792 100644
+--- a/src/renderer/assets/styles/index.less
++++ b/src/renderer/assets/styles/index.less
+@@ -616,3 +616,22 @@ table {
+   transform: scale(0.3);
+   opacity: 0;
+ }
++
++// 定位当前播放歌曲：定位后短暂高亮对应行
++@keyframes lx-locate-flash {
++  0% { opacity: 0.4; }
++  55% { opacity: 0.25; }
++  100% { opacity: 0; }
++}
++.lx-locate-highlight {
++  position: relative;
++  &::after {
++    content: '';
++    position: absolute;
++    inset: 0;
++    background: var(--color-primary);
++    opacity: 0;
++    pointer-events: none;
++    animation: lx-locate-flash 2.5s ease-out;
++  }
++}
+diff --git a/src/renderer/components/base/LocatePlayBtn.vue b/src/renderer/components/base/LocatePlayBtn.vue
+new file mode 100644
+index 0000000..2e7fe6e
+--- /dev/null
++++ b/src/renderer/components/base/LocatePlayBtn.vue
+@@ -0,0 +1,53 @@
++<template>
++  <button :class="$style.locateBtn" @click="$emit('click')">
++    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
++      <circle cx="12" cy="12" r="6.4" fill="none" stroke="currentColor" stroke-width="1.7" />
++      <circle cx="12" cy="12" r="2.1" fill="currentColor" />
++      <line x1="12" y1="1.6" x2="12" y2="5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
++      <line x1="12" y1="19" x2="12" y2="22.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
++      <line x1="1.6" y1="12" x2="5" y2="12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
++      <line x1="19" y1="12" x2="22.4" y2="12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
++    </svg>
++  </button>
++</template>
++
++<script>
++export default {
++  name: 'LocatePlayBtn',
++  emits: ['click'],
++}
++</script>
++
++<style lang="less" module>
++.locateBtn {
++  position: absolute;
++  right: 20px;
++  bottom: 20px;
++  z-index: 10;
++  width: 32px;
++  height: 32px;
++  padding: 0;
++  border: none;
++  border-radius: 50%;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  cursor: pointer;
++  color: #fff;
++  background: var(--color-primary);
++  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
++  opacity: 0.92;
++  transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease;
++  &:hover {
++    opacity: 1;
++    transform: translateY(-1px) scale(1.05);
++    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38);
++  }
++  &:active {
++    transform: scale(0.96);
++  }
++  svg {
++    display: block;
++  }
++}
++</style>
+diff --git a/src/renderer/components/common/DownloadModal.vue b/src/renderer/components/common/DownloadModal.vue
+index c2f3c44..8911a0b 100644
+--- a/src/renderer/components/common/DownloadModal.vue
++++ b/src/renderer/components/common/DownloadModal.vue
+@@ -2,6 +2,8 @@
+   <material-modal :show="show" :bg-close="bgClose" :teleport="teleport" @close="handleClose">
+     <main :class="$style.main">
+       <h2>{{ info.name }}<br>{{ info.singer }}</h2>
++      <base-checkbox v-if="chooseDir" :id="checkboxId" v-model="useDefaultDir" :class="$style.defaultDir" :label="$t('download__use_default_dir')" />
++      <div v-if="chooseDir && useDefaultDir" :class="$style.dirPath">{{ downloadPath }}</div>
+       <base-btn v-for="quality in qualitys" :key="quality.type" :class="$style.btn" @click="handleClick(quality.type)">
+         {{ getTypeName(quality.type) }}{{ quality.size && ` - ${quality.size.toUpperCase()}` }}
+       </base-btn>
+@@ -12,6 +14,8 @@
+ <script>
+ import { qualityList } from '@renderer/store'
+ import { createDownloadTasks } from '@renderer/store/download/action'
++import { appSetting, updateSetting } from '@renderer/store/setting'
++import { showSelectDialog } from '@renderer/utils/ipc'
+ 
+ export default {
+   props: {
+@@ -35,6 +39,10 @@ export default {
+       type: String,
+       default: '#root',
+     },
++    chooseDir: {
++      type: Boolean,
++      default: false,
++    },
+   },
+   emits: ['update:show'],
+   setup() {
+@@ -42,10 +50,19 @@ export default {
+       qualityList,
+     }
+   },
++  data() {
++    return {
++      useDefaultDir: true,
++      checkboxId: `download_modal_use_default_dir_${Math.random().toString(36).slice(2)}`,
++    }
++  },
+   computed: {
+     info() {
+       return this.musicInfo || {}
+     },
++    downloadPath() {
++      return appSetting['download.savePath']
++    },
+     sourceQualityList() {
+       return this.qualityList[this.musicInfo.source] || []
+     },
+@@ -53,8 +70,22 @@ export default {
+       return this.info.meta?.qualitys?.filter(quality => this.checkSource(quality.type)) || []
+     },
+   },
++  watch: {
++    show(value) {
++      if (value) this.useDefaultDir = true
++    },
++  },
+   methods: {
+-    handleClick(quality) {
++    async handleClick(quality) {
++      if (this.chooseDir && !this.useDefaultDir) {
++        const { canceled, filePaths } = await showSelectDialog({
++          title: this.$t('setting__download_select_save_path'),
++          defaultPath: appSetting['download.savePath'],
++          properties: ['openDirectory'],
++        })
++        if (canceled) return
++        updateSetting({ 'download.savePath': filePaths[0] })
++      }
+       void createDownloadTasks([this.musicInfo], quality, this.listId)
+       this.handleClose()
+     },
+@@ -103,6 +134,19 @@ export default {
+   }
+ }
+ 
++.defaultDir {
++  margin-bottom: 4px;
++  font-size: 12px;
++}
++
++.dirPath {
++  font-size: 12px;
++  color: var(--color-font-label);
++  text-align: left;
++  margin-bottom: 12px;
++  word-break: break-all;
++}
++
+ .btn {
+   display: block;
+   margin-bottom: 15px;
+diff --git a/src/renderer/components/layout/PlayDetail/components/ControlBtns.vue b/src/renderer/components/layout/PlayDetail/components/ControlBtns.vue
+index 1b06b7f..3081277 100644
+--- a/src/renderer/components/layout/PlayDetail/components/ControlBtns.vue
++++ b/src/renderer/components/layout/PlayDetail/components/ControlBtns.vue
+@@ -14,6 +14,9 @@ div(:class="$style.footerLeftControlBtns")
+   button(:class="[$style.footerLeftControlBtn, {[$style.active]: isShowPlayComment}]" :aria-label="$t('comment__show')" @click="toggleVisibleComment")
+     svg(version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" width="95%" viewBox="0 0 24 24" space="preserve")
+       use(xlink:href="#icon-comment")
++  button(:class="$style.footerLeftControlBtn" :aria-label="$t('list__download')" :disabled="!canDownload" @click="handleShowDownload")
++    svg(version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" width="80%" viewBox="0 0 475.078 475.077" space="preserve")
++      use(xlink:href="#icon-download")
+   common-sound-effect-btn
+   common-playback-rate-btn
+   common-volume-btn
+@@ -22,12 +25,16 @@ div(:class="$style.footerLeftControlBtns")
+     svg(version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" space="preserve")
+       use(xlink:href="#icon-add-2")
+   common-list-add-modal(v-model:show="isShowAddMusicTo" :music-info="playMusicInfo.musicInfo")
++  common-download-modal(v-model:show="isShowDownload" :music-info="playMusicInfo.musicInfo" choose-dir)
+ 
+ </template>
+ 
+ <script>
+-import { ref } from '@common/utils/vueTools'
++import { ref, computed, watch } from '@common/utils/vueTools'
+ import { useI18n } from '@renderer/plugins/i18n'
++import { assertApiSupport } from '@renderer/store/utils'
++import { downloadList } from '@renderer/store/download/state'
++import { DOWNLOAD_STATUS } from '@common/constants'
+ 
+ import {
+   isShowLrcSelectContent,
+@@ -71,6 +78,32 @@ export default {
+ 
+     const isShowAddMusicTo = ref(false)
+ 
++    const isShowDownload = ref(false)
++    const isDownloading = computed(() => {
++      const id = playMusicInfo.musicInfo?.id
++      return !!id && downloadList.some(task => task.metadata?.musicInfo?.id === id && (task.status === DOWNLOAD_STATUS.RUN || task.status === DOWNLOAD_STATUS.WAITING))
++    })
++    const canDownload = computed(() => {
++      const info = playMusicInfo.musicInfo
++      return !!info && appSetting['download.enable'] && info.source != 'local' && assertApiSupport(info.source) && !isDownloading.value
++    })
++    const handleShowDownload = () => {
++      if (!canDownload.value) return
++      isShowDownload.value = true
++    }
++
++    // ponytail: 完成提示只在播放详情页挂载期间触发，用 dialog 弹窗（应用无 toast/通知设施）。需全局或非阻塞提示时，把 watch 移到 App.vue 并另建 toast。
++    const taskStatuses = new Map()
++    watch(downloadList, () => {
++      for (const task of downloadList) {
++        const prev = taskStatuses.get(task.id)
++        taskStatuses.set(task.id, task.status)
++        if (prev != null && prev !== DOWNLOAD_STATUS.COMPLETED && task.status === DOWNLOAD_STATUS.COMPLETED) {
++          void dialog({ message: `${t('download___status_completed')}：${task.metadata?.musicInfo?.name ?? ''}` })
++        }
++      }
++    }, { deep: true, immediate: true })
++
+     const toggleAudioVisualization = async() => {
+       const newSetting = !appSetting['player.audioVisualization']
+       if (newSetting && appSetting['player.mediaDeviceId'] != 'default') {
+@@ -99,6 +132,9 @@ export default {
+       toggleLockDesktopLyric,
+       toggleAudioVisualization,
+       isShowAddMusicTo,
++      isShowDownload,
++      canDownload,
++      handleShowDownload,
+       playMusicInfo,
+     }
+   },
+@@ -137,6 +173,14 @@ export default {
+       opacity: .9;
+     }
+ 
++    &:disabled {
++      opacity: .25;
++      cursor: default;
++      &:hover {
++        opacity: .25;
++      }
++    }
++
+     &.active {
+       color: var(--color-primary);
+       opacity: .8;
+diff --git a/src/renderer/components/material/OnlineList/index.vue b/src/renderer/components/material/OnlineList/index.vue
+index fcdf527..a6e5934 100644
+--- a/src/renderer/components/material/OnlineList/index.vue
++++ b/src/renderer/components/material/OnlineList/index.vue
+@@ -6,7 +6,12 @@
+         <table>
+           <thead>
+             <tr v-if="actionButtonsVisible">
+-              <th class="num" style="width: 5%;">#</th>
++              <th class="num" style="width: 5%;">
++                <button v-if="list.length" :class="$style.selectAllBtn" @click="handleToggleSelectAll">
++                  {{ isAllSelected ? $t('cancel_select_all') : $t('select_all') }}
++                </button>
++                <span v-else>#</span>
++              </th>
+               <th class="nobreak">{{ $t('music_name') }}</th>
+               <th class="nobreak" style="width: 22%;">{{ $t('music_singer') }}</th>
+               <th class="nobreak" style="width: 22%;">{{ $t('music_album') }}</th>
+@@ -14,7 +19,12 @@
+               <th class="nobreak" style="width: 16%;">{{ $t('action') }}</th>
+             </tr>
+             <tr v-else>
+-              <th class="num" style="width: 5%;">#</th>
++              <th class="num" style="width: 5%;">
++                <button v-if="list.length" :class="$style.selectAllBtn" @click="handleToggleSelectAll">
++                  {{ isAllSelected ? $t('cancel_select_all') : $t('select_all') }}
++                </button>
++                <span v-else>#</span>
++              </th>
+               <th class="nobreak">{{ $t('music_name') }}</th>
+               <th class="nobreak" style="width: 24%;">{{ $t('music_singer') }}</th>
+               <th class="nobreak" style="width: 27%;">{{ $t('music_album') }}</th>
+@@ -28,7 +38,7 @@
+           <base-virtualized-list v-if="actionButtonsVisible" ref="listRef" :list="list" key-name="id" :item-height="listItemHeight" container-class="scroll" content-class="list" @contextmenu.capture="handleListRightClick">
+             <template #default="{ item, index }">
+               <div
+-                class="list-item" :class="[{ selected: rightClickSelectedIndex == index }, { active: selectedList.includes(item) }]"
++                class="list-item" :class="[{ 'lx-locate-highlight': highlightIndex === index }, { selected: rightClickSelectedIndex == index }, { active: selectedList.includes(item) }]"
+                 @click="handleListItemClick($event, index)" @contextmenu="handleListItemRightClick($event, index)"
+               >
+                 <div class="list-item-cell no-select num" style="flex: 0 0 5%;" @click.stop>{{ index + 1 }}</div>
+@@ -56,7 +66,7 @@
+           <base-virtualized-list v-else ref="listRef" :list="list" key-name="id" :item-height="listItemHeight" container-class="scroll" content-class="list" @contextmenu.capture="handleListRightClick">
+             <template #default="{ item, index }">
+               <div
+-                class="list-item" :class="[{ selected: rightClickSelectedIndex == index }, { active: selectedList.includes(item) }]"
++                class="list-item" :class="[{ 'lx-locate-highlight': highlightIndex === index }, { selected: rightClickSelectedIndex == index }, { active: selectedList.includes(item) }]"
+                 @click="handleListItemClick($event, index)" @contextmenu="handleListItemRightClick($event, index)"
+               >
+                 <div class="list-item-cell no-select num" style="flex: 0 0 5%;" @click.stop>{{ index + 1 }}</div>
+@@ -84,6 +94,7 @@
+             <p v-text="noItem" />
+           </div>
+         </transition>
++        <locate-play-btn v-if="canLocateCurrent" @click="handleLocateCurrentPlay" />
+       </div>
+     </div>
+     <!-- </transition> -->
+@@ -101,7 +112,7 @@
+ <script>
+ import { clipboardWriteText } from '@common/utils/electron'
+ import { assertApiSupport } from '@renderer/store/utils'
+-import { ref } from '@common/utils/vueTools'
++import { ref, computed } from '@common/utils/vueTools'
+ import useList from './useList'
+ import useMenu from './useMenu'
+ import usePlay from './usePlay'
+@@ -109,8 +120,13 @@ import useMusicDownload from './useMusicDownload'
+ import useMusicAdd from './useMusicAdd'
+ import useMusicActions from './useMusicActions'
+ import { appSetting } from '@renderer/store/setting'
++import useLocateCurrentPlay from '@renderer/composables/useLocateCurrentPlay'
++import LocatePlayBtn from '@renderer/components/base/LocatePlayBtn.vue'
+ export default {
+   name: 'MaterialOnlineList',
++  components: {
++    LocatePlayBtn,
++  },
+   props: {
+     list: {
+       type: Array,
+@@ -142,6 +158,11 @@ export default {
+       type: Boolean,
+       default: false,
+     },
++    // 是否显示「定位当前播放」悬浮按钮（歌单、排行榜页传入，仅当开启「列表点击行为」时生效）
++    locateCurrentPlay: {
++      type: Boolean,
++      default: false,
++    },
+   },
+   emits: ['show-menu', 'play-list', 'togglePage'],
+   setup(props, { emit }) {
+@@ -155,6 +176,7 @@ export default {
+       listItemHeight,
+       handleSelectData,
+       removeAllSelect,
++      handleSelectAllData,
+     } = useList({ props, listRef })
+ 
+     const {
+@@ -246,14 +268,29 @@ export default {
+           break
+       }
+     }
++    const isAllSelected = computed(() => props.list.length > 0 && selectedList.value.length === props.list.length)
++    const handleToggleSelectAll = () => {
++      if (isAllSelected.value) removeAllSelect()
++      else handleSelectAllData()
++    }
+     const scrollToTop = () => {
+-      listRef.value.scrollTo(0, true)
++      listRef.value?.scrollTo(0, true)
+     }
+ 
++    // 定位当前播放：索引计算 + 滚动定位 + 定位后短暂高亮（复用通用逻辑）；仅当开启「列表点击行为」时生效
++    const { highlightIndex, canLocateCurrent, handleLocateCurrentPlay } = useLocateCurrentPlay(listRef, () => props.list, {
++      enabled: () => props.locateCurrentPlay && appSetting['list.isClickPlayList'],
++    })
++
+     return {
+       listItemHeight,
++      canLocateCurrent,
++      highlightIndex,
++      handleLocateCurrentPlay,
+       handleListItemClick,
+       selectedList,
++      isAllSelected,
++      handleToggleSelectAll,
+       handleListItemRightClick,
+       removeAllSelect,
+       handleListBtnClick,
+@@ -287,6 +324,18 @@ export default {
+ 
+ <style lang="less" module>
+ @import '@renderer/assets/styles/layout.less';
++.selectAllBtn {
++  padding: 0;
++  border: none;
++  background: none;
++  color: var(--color-primary);
++  font-size: 12px;
++  white-space: nowrap;
++  cursor: pointer;
++  &:hover {
++    text-decoration: underline;
++  }
++}
+ .songList {
+   overflow: hidden;
+   height: 100%;
+diff --git a/src/renderer/components/material/OnlineList/useList.ts b/src/renderer/components/material/OnlineList/useList.ts
+index 52e47e8..512e50d 100644
+--- a/src/renderer/components/material/OnlineList/useList.ts
++++ b/src/renderer/components/material/OnlineList/useList.ts
+@@ -111,5 +111,6 @@ export default ({ props, listRef }: {
+     listItemHeight,
+     removeAllSelect,
+     handleSelectData,
++    handleSelectAllData,
+   }
+ }
+diff --git a/src/renderer/composables/useLocateCurrentPlay.ts b/src/renderer/composables/useLocateCurrentPlay.ts
+new file mode 100644
+index 0000000..0d5aa7d
+--- /dev/null
++++ b/src/renderer/composables/useLocateCurrentPlay.ts
+@@ -0,0 +1,66 @@
++import { ref, computed } from '@common/utils/vueTools'
++import { playMusicInfo } from '@renderer/store/player/state'
++
++export interface LocateCurrentPlayListRef {
++  scrollToIndex: (index: number, offset?: number, animate?: boolean, onScrollEnd?: () => void) => void
++}
++
++export interface UseLocateCurrentPlayOptions<T extends { id: string }> {
++  /** 额外启用条件（如歌单、排行榜需「列表点击行为」开关开启） */
++  enabled?: () => boolean
++  /** 自定义当前播放歌曲在列表中的索引计算方式 */
++  resolveIndex?: (musicInfo: { id: string }, list: T[]) => number
++}
++
++/**
++ * 定位当前播放歌曲：计算索引、滚动定位，并在定位后短暂高亮该行。
++ *
++ * @param listRef 列表组件引用（需暴露 scrollToIndex）
++ * @param getList 返回当前列表数据
++ * @param options 可选配置
++ */
++export default function useLocateCurrentPlay<T extends { id: string }>(
++  listRef: { value: LocateCurrentPlayListRef | null | undefined },
++  getList: () => T[],
++  options: UseLocateCurrentPlayOptions<T> = {},
++) {
++  const currentPlayIndex = computed(() => {
++    const musicInfo = playMusicInfo.musicInfo
++    if (!musicInfo) return -1
++    if (options.resolveIndex) return options.resolveIndex(musicInfo, getList())
++    return getList().findIndex(item => item.id === musicInfo.id)
++  })
++
++  const canLocateCurrent = computed(() => {
++    if (options.enabled && !options.enabled()) return false
++    return getList().length > 0 && currentPlayIndex.value > -1
++  })
++
++  // 定位后短暂高亮被定位的歌曲行
++  const highlightIndex = ref(-1)
++  let highlightTimer: ReturnType<typeof setTimeout> | null = null
++  const flashHighlight = (index: number) => {
++    highlightIndex.value = -1
++    if (highlightTimer) {
++      clearTimeout(highlightTimer)
++      highlightTimer = null
++    }
++    window.requestAnimationFrame(() => {
++      highlightIndex.value = index
++      highlightTimer = setTimeout(() => {
++        highlightIndex.value = -1
++        highlightTimer = null
++      }, 2600)
++    })
++  }
++
++  const handleLocateCurrentPlay = () => {
++    const index = currentPlayIndex.value
++    const list = getList()
++    if (index < 0 || index >= list.length) return
++    listRef.value?.scrollToIndex(index, -150, true)
++    flashHighlight(index)
++  }
++
++  return { highlightIndex, canLocateCurrent, handleLocateCurrentPlay }
++}
+diff --git a/src/renderer/views/Download/index.vue b/src/renderer/views/Download/index.vue
+index b8f1a53..87015ca 100644
+--- a/src/renderer/views/Download/index.vue
++++ b/src/renderer/views/Download/index.vue
+@@ -8,7 +8,12 @@
+         <table>
+           <thead>
+             <tr>
+-              <th class="num" style="width: 5%;">#</th>
++              <th class="num" style="width: 5%;">
++                <button v-if="list.length" :class="$style.selectAllBtn" @click="handleToggleSelectAll">
++                  {{ isAllSelected ? $t('cancel_select_all') : $t('select_all') }}
++                </button>
++                <span v-else>#</span>
++              </th>
+               <th class="nobreak">{{ $t('music_name') }}</th>
+               <th class="nobreak" style="width: 20%;">{{ $t('download__progress') }}</th>
+               <th class="nobreak" style="width: 22%;">{{ $t('download__status') }}</th>
+@@ -70,7 +75,7 @@
+ <script>
+ // import { checkPath, openDirInExplorer, openUrl } from '@common/utils/electron'
+ 
+-import { ref } from '@common/utils/vueTools'
++import { ref, computed } from '@common/utils/vueTools'
+ import useListInfo from './useListInfo'
+ import useList from './useList'
+ import useTab from './useTab'
+@@ -101,6 +106,7 @@ export default {
+       listItemHeight,
+       removeAllSelect,
+       handleSelectData,
++      handleSelectAllData,
+     } = useList({ listRef, list, listAll })
+ 
+     const {
+@@ -203,6 +209,11 @@ export default {
+       }
+     }
+ 
++    const isAllSelected = computed(() => list.value.length > 0 && selectedList.value.length === list.value.length)
++    const handleToggleSelectAll = () => {
++      if (isAllSelected.value) removeAllSelect()
++      else handleSelectAllData()
++    }
+     const getName = (downloadInfo) => {
+       return formatMusicName(appSetting['download.fileName'], downloadInfo.metadata.musicInfo.name, downloadInfo.metadata.musicInfo.singer)
+     }
+@@ -220,6 +231,8 @@ export default {
+       selectedList,
+       listItemHeight,
+       playTaskId,
++      isAllSelected,
++      handleToggleSelectAll,
+ 
+       isShowListAdd,
+       isShowListAddMultiple,
+@@ -259,6 +272,18 @@ export default {
+     }
+   }
+ }
++.selectAllBtn {
++  padding: 0;
++  border: none;
++  background: none;
++  color: var(--color-primary);
++  font-size: 12px;
++  white-space: nowrap;
++  cursor: pointer;
++  &:hover {
++    text-decoration: underline;
++  }
++}
+ .num {
+   height: 100%;
+   display: flex;
+diff --git a/src/renderer/views/Download/useList.js b/src/renderer/views/Download/useList.js
+index 029b4d2..af017fc 100644
+--- a/src/renderer/views/Download/useList.js
++++ b/src/renderer/views/Download/useList.js
+@@ -103,5 +103,6 @@ export default ({ listRef, list, listAll }) => {
+     listItemHeight,
+     removeAllSelect,
+     handleSelectData,
++    handleSelectAllData,
+   }
+ }
+diff --git a/src/renderer/views/Leaderboard/MusicList/index.vue b/src/renderer/views/Leaderboard/MusicList/index.vue
+index 021fdec..5dece0f 100644
+--- a/src/renderer/views/Leaderboard/MusicList/index.vue
++++ b/src/renderer/views/Leaderboard/MusicList/index.vue
+@@ -7,6 +7,7 @@
+       :total="listDetailInfo.total"
+       :list="listDetailInfo.list"
+       :no-item="listDetailInfo.noItemLabel"
++      locate-current-play
+       @show-menu="hideListsMenu"
+       @play-list="handlePlayList"
+       @toggle-page="togglePage"
+diff --git a/src/renderer/views/List/MusicList/index.vue b/src/renderer/views/List/MusicList/index.vue
+index 9681972..7a2307b 100644
+--- a/src/renderer/views/List/MusicList/index.vue
++++ b/src/renderer/views/List/MusicList/index.vue
+@@ -4,7 +4,12 @@
+       <table>
+         <thead>
+           <tr v-if="actionButtonsVisible">
+-            <th class="num" style="width: 5%;">#</th>
++            <th class="num" style="width: 5%;">
++              <button v-if="list.length" :class="$style.selectAllBtn" @click="handleToggleSelectAll">
++                {{ isAllSelected ? $t('cancel_select_all') : $t('select_all') }}
++              </button>
++              <span v-else>#</span>
++            </th>
+             <th class="nobreak">{{ $t('music_name') }}</th>
+             <th class="nobreak" style="width: 22%;">{{ $t('music_singer') }}</th>
+             <th class="nobreak" style="width: 22%;">{{ $t('music_album') }}</th>
+@@ -12,7 +17,12 @@
+             <th class="nobreak" style="width: 16%;">{{ $t('action') }}</th>
+           </tr>
+           <tr v-else>
+-            <th class="num" style="width: 5%;">#</th>
++            <th class="num" style="width: 5%;">
++              <button v-if="list.length" :class="$style.selectAllBtn" @click="handleToggleSelectAll">
++                {{ isAllSelected ? $t('cancel_select_all') : $t('select_all') }}
++              </button>
++              <span v-else>#</span>
++            </th>
+             <th class="nobreak">{{ $t('music_name') }}</th>
+             <th class="nobreak" style="width: 25%;">{{ $t('music_singer') }}</th>
+             <th class="nobreak" style="width: 28%;">{{ $t('music_album') }}</th>
+@@ -28,7 +38,7 @@
+         @scroll="saveListPosition" @contextmenu.capture="handleListRightClick"
+       >
+         <div
+-          class="list-item" :class="[{ [$style.active]: playerInfo.isPlayList && playerInfo.playIndex === index }, { selected: selectedIndex == index || rightClickSelectedIndex == index }, { active: selectedList.includes(item) }, { disabled: !assertApiSupport(item.source) }]"
++          class="list-item" :class="[{ 'lx-locate-highlight': highlightIndex === index }, { [$style.active]: playerInfo.isPlayList && playerInfo.playIndex === index }, { selected: selectedIndex == index || rightClickSelectedIndex == index }, { active: selectedList.includes(item) }, { disabled: !assertApiSupport(item.source) }]"
+           @click="handleListItemClick($event, index)" @contextmenu="handleListItemRightClick($event, index)"
+         >
+           <div class="list-item-cell no-select" :class="$style.num" style="flex: 0 0 5%;">
+@@ -60,7 +70,7 @@
+       >
+         <div
+           class="list-item"
+-          :class="[{ [$style.active]: playerInfo.isPlayList && playerInfo.playIndex === index }, { selected: selectedIndex == index || rightClickSelectedIndex == index }, { active: selectedList.includes(item) }, { disabled: !assertApiSupport(item.source) }]"
++          :class="[{ 'lx-locate-highlight': highlightIndex === index }, { [$style.active]: playerInfo.isPlayList && playerInfo.playIndex === index }, { selected: selectedIndex == index || rightClickSelectedIndex == index }, { active: selectedList.includes(item) }, { disabled: !assertApiSupport(item.source) }]"
+           @click="handleListItemClick($event, index)" @contextmenu="handleListItemRightClick($event, index)"
+         >
+           <div class="list-item-cell no-select" :class="$style.num" style="flex: 0 0 5%;">
+@@ -82,6 +92,7 @@
+           <div class="list-item-cell" style="flex: 0 0 10%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
+         </div>
+       </base-virtualized-list>
++      <locate-play-btn v-if="canLocateCurrent" @click="handleLocateCurrentPlay" />
+     </div>
+     <div v-show="!list.length" :class="$style.noItem">
+       <p v-text="$t('no_item')" />
+@@ -105,6 +116,9 @@
+ 
+ <script>
+ import { clipboardWriteText } from '@common/utils/electron'
++import { computed } from '@common/utils/vueTools'
++import useLocateCurrentPlay from '@renderer/composables/useLocateCurrentPlay'
++import LocatePlayBtn from '@renderer/components/base/LocatePlayBtn.vue'
+ import { assertApiSupport } from '@renderer/store/utils'
+ import SearchList from './components/SearchList.vue'
+ import MusicSortModal from './components/MusicSortModal.vue'
+@@ -127,6 +141,7 @@ export default {
+     SearchList,
+     MusicSortModal,
+     MusicToggleModal,
++    LocatePlayBtn,
+   },
+   props: {
+     listId: {
+@@ -168,6 +183,7 @@ export default {
+       listItemHeight,
+       handleSelectData,
+       removeAllSelect,
++      handleSelectAllData,
+     } = useList({ listRef, list })
+ 
+     const {
+@@ -296,14 +312,27 @@ export default {
+           break
+       }
+     }
++    const isAllSelected = computed(() => list.value.length > 0 && selectedList.value.length === list.value.length)
++    const handleToggleSelectAll = () => {
++      if (isAllSelected.value) removeAllSelect()
++      else handleSelectAllData()
++    }
+     const scrollToTop = () => {
+-      listRef.value.scrollTo(0, true)
++      listRef.value?.scrollTo(0, true)
+     }
+ 
++    // 定位当前播放：索引计算 + 滚动定位 + 定位后短暂高亮（复用通用逻辑）
++    const { highlightIndex, canLocateCurrent, handleLocateCurrentPlay } = useLocateCurrentPlay(listRef, () => list.value, {
++      // 从本源列表播放时直接用播放索引，避免重复 id 定位到错误行
++      resolveIndex: (musicInfo, list) => playerInfo.value.isPlayList ? playerInfo.value.playIndex : list.findIndex(item => item.id === musicInfo.id),
++    })
++
+     return {
+       listItemHeight,
+       handleListItemClick,
+       selectedList,
++      isAllSelected,
++      handleToggleSelectAll,
+       handleListItemRightClick,
+       removeAllSelect,
+       handleListBtnClick,
+@@ -337,6 +366,9 @@ export default {
+       selectedDownloadMusicInfo,
+ 
+       scrollToTop,
++      canLocateCurrent,
++      highlightIndex,
++      handleLocateCurrentPlay,
+ 
+       isShowSearchBar,
+       searchList,
+@@ -386,6 +418,18 @@ export default {
+     }
+   }
+ }
++.selectAllBtn {
++  padding: 0;
++  border: none;
++  background: none;
++  color: var(--color-primary);
++  font-size: 12px;
++  white-space: nowrap;
++  cursor: pointer;
++  &:hover {
++    text-decoration: underline;
++  }
++}
+ .num {
+   height: 100%;
+   display: flex;
+@@ -407,6 +451,7 @@ export default {
+   opacity: .7;
+ }
+ .content {
++  position: relative;
+   min-height: 0;
+   font-size: 14px;
+   display: flex;
+diff --git a/src/renderer/views/List/MusicList/useList.js b/src/renderer/views/List/MusicList/useList.js
+index f5baca6..435ca54 100644
+--- a/src/renderer/views/List/MusicList/useList.js
++++ b/src/renderer/views/List/MusicList/useList.js
+@@ -103,5 +103,6 @@ export default ({ listRef, list }) => {
+     listItemHeight,
+     removeAllSelect,
+     handleSelectData,
++    handleSelectAllData,
+   }
+ }
+diff --git a/src/renderer/views/Setting/components/UserApiModal.vue b/src/renderer/views/Setting/components/UserApiModal.vue
+index d1f9141..5ee9891 100644
+--- a/src/renderer/views/Setting/components/UserApiModal.vue
++++ b/src/renderer/views/Setting/components/UserApiModal.vue
+@@ -1,7 +1,9 @@
+ <template lang="pug">
+ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose")
+   main.scroll(:class="$style.main")
+-    h2 {{ $t('user_api__title') }}
++    div(:class="$style.header")
++      h2 {{ $t('user_api__title') }}
++      base-btn(v-if="apiList.length" min outline :class="$style.removeAllBtn" @click="handleRemoveAll") {{ $t('user_api__btn_remove_all') }}
+     ul.scroll(v-if="apiList.length" :class="$style.content")
+       li(v-for="(api, index) in apiList" :key="api.id" :class="[$style.listItem, {[$style.active]: appSetting['common.apiSource'] == api.id}]")
+         div(:class="$style.listLeft")
+@@ -23,9 +25,15 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
+         span.hover.underline(aria-label="https://lxmusic.toside.cn/desktop/custom-source" @click="handleOpenUrl('https://lyswhut.github.io/lx-music-doc/desktop/custom-source')") FAQ
+       p {{ $t('user_api__note') }}
+     div(:class="$style.footer")
++      base-btn(:class="$style.footerBtn" @click="isShowOneClickImportModal = true") {{ $t('user_api__btn_one_click_import') }}
+       base-btn(:class="$style.footerBtn" @click="isShowOnlineImportModal = true") {{ $t('user_api__btn_import_online') }}
+       base-btn(:class="$style.footerBtn" @click="handleImport") {{ $t('user_api__btn_import') }}
+       //- base-btn(:class="$style.footerBtn" @click="handleExport") {{ $t('user_api__btn_export') }}
++    div(v-if="importLoading" :class="$style.importMask")
++      div(:class="$style.importBox")
++        div(:class="$style.spinner")
++        p {{ $t('user_api__importing') }}
++    UserApiOneClickImportModal(v-model:show="isShowOneClickImportModal" @import-start="importLoading = true" @import-done="importLoading = false")
+     UserApiOnlineImportModal(v-model:show="isShowOnlineImportModal" @import="importUserApi")
+ </template>
+ 
+@@ -39,10 +47,12 @@ import { appSetting, updateSetting } from '@renderer/store/setting'
+ import { computed, ref } from '@common/utils/vueTools'
+ import { dialog } from '@renderer/plugins/Dialog'
+ 
++import UserApiOneClickImportModal from './UserApiOneClickImportModal.vue'
+ import UserApiOnlineImportModal from './UserApiOnlineImportModal.vue'
+ 
+ export default {
+   components: {
++    UserApiOneClickImportModal,
+     UserApiOnlineImportModal,
+   },
+   props: {
+@@ -54,13 +64,17 @@ export default {
+   emits: ['update:modelValue'],
+   setup() {
+     const isShowOnlineImportModal = ref(false)
++    const isShowOneClickImportModal = ref(false)
++    const importLoading = ref(false)
+     const apiList = computed(() => userApi.list)
+ 
+     return {
+       userApi,
+       apiList,
+       appSetting,
++      importLoading,
+       isShowOnlineImportModal,
++      isShowOneClickImportModal,
+     }
+   },
+   methods: {
+@@ -106,6 +120,16 @@ export default {
+       }
+       userApi.list = await removeUserApi([api.id])
+     },
++    async handleRemoveAll() {
++      if (!this.apiList.length) return
++      const isConfirm = await dialog.confirm(this.$t('user_api__remove_all_confirm'))
++      if (!isConfirm) return
++      if (/^user_api/.test(appSetting['common.apiSource'])) {
++        const backApi = apiSourceInfo.find(api => !api.disabled)
++        updateSetting({ 'common.apiSource': backApi?.id ?? '' })
++      }
++      userApi.list = await removeUserApi(this.apiList.map(api => api.id))
++    },
+     handleClose() {
+       this.$emit('update:modelValue', false)
+     },
+@@ -130,6 +154,7 @@ export default {
+   display: flex;
+   flex-flow: column nowrap;
+   min-height: 0;
++  position: relative;
+   // max-height: 100%;
+   // overflow: hidden;
+   h2 {
+@@ -157,6 +182,52 @@ export default {
+   margin-top: 15px;
+   padding: 0 7px;
+ }
++.header {
++  position: relative;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  min-height: 22px;
++}
++.removeAllBtn {
++  position: absolute;
++  right: 0;
++  top: 50%;
++  transform: translateY(-50%);
++  color: #f56c6c !important;
++}
++.importMask {
++  position: absolute;
++  inset: 0;
++  z-index: 2;
++  display: flex;
++  flex-flow: column nowrap;
++  justify-content: center;
++  align-items: center;
++  background-color: var(--color-content-background);
++  opacity: .95;
++}
++.importBox {
++  display: flex;
++  flex-flow: column nowrap;
++  align-items: center;
++  color: var(--color-font);
++  font-size: 14px;
++  p {
++    margin-top: 12px;
++  }
++}
++.spinner {
++  width: 26px;
++  height: 26px;
++  border: 3px solid var(--color-primary-background-hover);
++  border-top-color: var(--color-primary);
++  border-radius: 50%;
++  animation: userApiSpin .8s linear infinite;
++}
++@keyframes userApiSpin {
++  to { transform: rotate(360deg); }
++}
+ .listItem {
+   display: flex;
+   flex-flow: row nowrap;
+diff --git a/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
+new file mode 100644
+index 0000000..85746e8
+--- /dev/null
++++ b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
+@@ -0,0 +1,269 @@
++<template>
++  <material-modal :show="show" teleport="#view" @close="handleClose">
++    <main :class="$style.main">
++      <h2>{{ $t('user_api_one_click__title') }}</h2>
++      <div :class="$style.options">
++        <base-checkbox
++          id="user_api_one_click_only_available"
++          v-model="onlyAvailable"
++          :class="$style.option"
++          :label="$t('user_api_one_click__only_available')"
++          @change="handleOnlyAvailableChange"
++        />
++        <base-checkbox
++          id="user_api_one_click_use_proxy"
++          v-model="useProxy"
++          :class="$style.option"
++          :label="$t('user_api_one_click__use_proxy')"
++        />
++      </div>
++      <p :class="$style.tip">{{ $t('user_api_one_click__tip', { time: updatedAt || '-' }) }}</p>
++      <div :class="$style.content">
++        <div v-if="loading" :class="$style.empty">{{ $t('user_api_one_click__loading') }}</div>
++        <div v-else-if="loadError" :class="$style.empty">{{ loadError }}</div>
++        <div v-else-if="!list.length" :class="$style.empty">{{ $t('user_api__noitem') }}</div>
++        <ul v-else :class="$style.list">
++          <li v-for="item in list" :key="item.key" :class="$style.item">
++            <base-checkbox
++              :id="`user_api_one_click_${item.key}`"
++              v-model="selected"
++              :value="item.key"
++              :class="$style.itemCheckbox"
++              :label="item.key"
++            />
++            <span :class="[$style.status, $style[item.cls]]">{{ item.status }}</span>
++          </li>
++        </ul>
++      </div>
++      <div :class="$style.footer">
++        <base-btn :class="$style.btn" @click="handleClose">{{ $t('btn_close') }}</base-btn>
++        <base-btn :class="$style.btn" :disabled="disabled || loading || !!loadError || !selected.length" @click="handleImport">{{ btnText }}</base-btn>
++      </div>
++    </main>
++  </material-modal>
++</template>
++
++<script>
++import { dialog } from '@renderer/plugins/Dialog'
++import { httpFetch } from '@renderer/utils/request'
++import { importUserApi } from '@renderer/utils/ipc'
++import { userApi } from '@renderer/store'
++
++const RAW_BASE = 'https://raw.githubusercontent.com/pdone/lx-music-source'
++const PROXY_BASE = 'https://ghproxy.net/raw.githubusercontent.com/pdone/lx-music-source'
++const HEALTH_PATH = '/health-status/health-state.json'
++const SOURCE_PATH = '/main'
++
++const statusClass = (status) => {
++  switch (status) {
++    case '可用': return 'available'
++    case '异常': return 'warn'
++    default: return 'invalid'
++  }
++}
++
++export default {
++  props: {
++    show: {
++      type: Boolean,
++      default: false,
++    },
++  },
++  emits: ['update:show', 'import-start', 'import-done'],
++  data() {
++    return {
++      onlyAvailable: true,
++      useProxy: false,
++      list: [],
++      selected: [],
++      updatedAt: '',
++      loading: false,
++      loadError: '',
++      disabled: false,
++      btnText: '',
++    }
++  },
++  watch: {
++    show(n) {
++      if (n) void this.init()
++    },
++  },
++  methods: {
++    handleClose() {
++      this.$emit('update:show', false)
++    },
++    fetchText(url) {
++      return httpFetch(url, { timeout: 20_000 }).promise.then(resp => resp.body)
++    },
++    async fetchHealth() {
++      let lastErr
++      for (const base of [RAW_BASE, PROXY_BASE]) {
++        try {
++          const body = await this.fetchText(base + HEALTH_PATH)
++          return typeof body === 'string' ? JSON.parse(body) : body
++        } catch (err) {
++          lastErr = err
++        }
++      }
++      throw lastErr
++    },
++    async init() {
++      this.loading = true
++      this.loadError = ''
++      this.list = []
++      this.selected = []
++      this.updatedAt = ''
++      this.onlyAvailable = true
++      this.useProxy = false
++      this.disabled = false
++      this.btnText = this.$t('user_api_one_click__import')
++      try {
++        const data = await this.fetchHealth()
++        this.list = Object.entries(data.sources || {}).map(([key, status]) => ({ key, status, cls: statusClass(status) }))
++        this.updatedAt = data.updated_at || ''
++        this.applyDefaultSelect()
++      } catch (err) {
++        this.loadError = this.$t('user_api_one_click__load_failed', { message: err.message })
++      } finally {
++        this.loading = false
++      }
++    },
++    applyDefaultSelect(onlyAvailable = this.onlyAvailable) {
++      this.selected = this.list
++        .filter(item => !onlyAvailable || item.status === '可用')
++        .map(item => item.key)
++    },
++    handleOnlyAvailableChange(onlyAvailable) {
++      this.applyDefaultSelect(onlyAvailable)
++    },
++    async handleImport() {
++      if (!this.selected.length) return
++      if (userApi.list.length + this.selected.length > 20) {
++        void dialog(this.$t('user_api__max_tip'))
++        return
++      }
++      this.disabled = true
++      this.btnText = this.$t('user_api_import_online__input_loading')
++      const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
++      this.$emit('import-start')
++      this.handleClose()
++      let ok = 0
++      let finalList
++      const fails = []
++      for (const key of this.selected) {
++        try {
++          const script = await this.fetchText(`${base}/${key}/latest.js`)
++          const { apiList } = await importUserApi(script)
++          finalList = apiList
++          ok++
++        } catch (err) {
++          fails.push(`${key}: ${err.message}`)
++        }
++      }
++      if (finalList) userApi.list = finalList
++      this.$emit('import-done')
++      if (fails.length) {
++        void dialog(this.$t('user_api_one_click__import_result', { ok, fail: fails.length, detail: fails.join('\n') }))
++      } else {
++        void dialog(this.$t('user_api_one_click__import_success', { ok }))
++      }
++    },
++  },
++}
++</script>
++
++<style lang="less" module>
++@import '@renderer/assets/styles/layout.less';
++
++.main {
++  padding: 0 15px;
++  width: 450px;
++  min-width: 280px;
++  display: flex;
++  flex-flow: column nowrap;
++  min-height: 0;
++  max-height: 80vh;
++  h2 {
++    font-size: 16px;
++    color: var(--color-font);
++    line-height: 1.3;
++    text-align: center;
++    padding: 15px 0 10px;
++  }
++}
++.options {
++  display: flex;
++  flex-flow: column nowrap;
++}
++.option {
++  font-size: 14px;
++  opacity: .9;
++  + .option {
++    margin-top: 8px;
++  }
++}
++.tip {
++  margin-top: 10px;
++  font-size: 12px;
++  line-height: 1.4;
++  color: var(--color-font-label);
++  white-space: pre-line;
++}
++.content {
++  flex: auto;
++  min-height: 80px;
++  margin-top: 10px;
++  overflow-y: auto;
++}
++.empty {
++  height: 100px;
++  font-size: 14px;
++  color: var(--color-font-label);
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  text-align: center;
++  white-space: pre-line;
++  padding: 0 10px;
++}
++.list {
++  padding: 0 2px;
++}
++.item {
++  display: flex;
++  flex-flow: row nowrap;
++  align-items: center;
++  justify-content: space-between;
++  padding: 8px 6px;
++  border-radius: @radius-border;
++  &:hover {
++    background-color: var(--color-primary-background-hover);
++  }
++}
++.itemCheckbox {
++  font-size: 14px;
++}
++.status {
++  flex: none;
++  font-size: 12px;
++  margin-left: 10px;
++  &.available {
++    color: var(--color-primary);
++  }
++  &.warn {
++    color: #e6a23c;
++  }
++  &.invalid {
++    color: #f56c6c;
++  }
++}
++.footer {
++  margin: 15px 0 15px auto;
++}
++.btn {
++  min-width: 70px;
++  + .btn {
++    margin-left: 10px;
++  }
++}
++</style>
+diff --git a/src/renderer/views/songList/Detail/index.vue b/src/renderer/views/songList/Detail/index.vue
+index 5ed1431..df7306a 100644
+--- a/src/renderer/views/songList/Detail/index.vue
++++ b/src/renderer/views/songList/Detail/index.vue
+@@ -34,6 +34,7 @@
+         :total="listDetailInfo.total"
+         :list="listDetailInfo.list"
+         :no-item="listDetailInfo.noItemLabel"
++        locate-current-play
+         @play-list="handlePlayList"
+         @toggle-page="togglePage"
+       />
