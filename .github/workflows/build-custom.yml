@@ -1,0 +1,78 @@
+# 用法: 放到本项目的 .github/workflows/build-custom.yml
+# 触发: 手动 (Actions 页面点 Run workflow) 或每周一自动
+# 产物: 各平台安装包，在对应 run 的 Artifacts 里下载（未签名）
+name: build-custom
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '上游 tag（留空=自动取最新 release tag）'
+        required: false
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            pack: pack:mac
+            artifact: build/*.dmg
+          - os: windows-latest
+            pack: pack:win:setup:x64
+            artifact: build/*.exe
+          - os: ubuntu-latest
+            pack: pack:linux:appImage
+            artifact: build/*.AppImage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve upstream tag
+        id: tag
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(git ls-remote --tags --sort=-v:refname https://github.com/lyswhut/lx-music-desktop.git \
+                  | grep -v '\^{}' | head -1 | sed 's#.*refs/tags/##')
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Clone upstream & apply patch
+        shell: bash
+        run: |
+          git clone --depth 1 -b "${{ steps.tag.outputs.tag }}" \
+            https://github.com/lyswhut/lx-music-desktop.git app
+          cd app
+          PATCH="$GITHUB_WORKSPACE/lx-music-changes.patch"
+          if git apply --check "$PATCH" 2>/dev/null; then
+            git apply "$PATCH"
+          else
+            echo "直接 apply 不干净（上游有改动），改用 patch --fuzz"
+            patch -p1 --forward --fuzz=3 < "$PATCH"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build
+        shell: bash
+        env:
+          # 不做代码签名（没有证书时也能出包；自己用可右键打开 / xattr 去隔离）
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          cd app
+          npm ci
+          npm run build
+          npm run ${{ matrix.pack }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: app/${{ matrix.artifact }}
+          if-no-files-found: warn
