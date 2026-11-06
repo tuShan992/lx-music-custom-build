@@ -1,6 +1,6 @@
 # 用法: 放到本项目的 .github/workflows/build-custom.yml
-# 触发: 手动 (Actions 页面点 Run workflow) 或每周一自动
-# 产物: 各平台安装包，在对应 run 的 Artifacts 里下载（未签名）
+# 触发: 手动 (Actions 页面点 Run workflow) / 推送 v* 标签 / 每周一自动
+# 产物: 各平台安装包；在 run 的 Artifacts 下载，或填 release_tag 自动发布 Release
 name: build-custom
 
 on:
@@ -9,6 +9,12 @@ on:
       tag:
         description: '上游 tag（留空=自动取最新 release tag）'
         required: false
+      release_tag:
+        description: '发布 Release 的标签名（如 v2.12.6-custom.1；留空=只构建不发布）'
+        required: false
+  push:
+    tags:
+      - 'v*'
   schedule:
     - cron: '0 3 * * 1'
 
@@ -77,3 +83,34 @@ jobs:
           name: build-${{ matrix.os }}
           path: app/${{ matrix.artifact }}
           if-no-files-found: warn
+
+  # 发布 Release：把三个平台的安装包合并上传到同一个 Release
+  # - 手动触发时填写 release_tag 才会执行
+  # - 推送 v* 标签时自动用该标签发布
+  release:
+    needs: build
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List files
+        run: ls -lhR dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || github.event.inputs.release_tag }}
+          name: ${{ github.event_name == 'push' && github.ref_name || github.event.inputs.release_tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
