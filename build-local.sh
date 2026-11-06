@@ -20,7 +20,8 @@ OUT="$ROOT/out"
 [ -f "$PATCH" ] || { echo "找不到补丁: $PATCH"; exit 1; }
 
 if [ -z "$TAG" ]; then
-  TAG="$(git ls-remote --tags --sort=-v:refname "$UPSTREAM" | grep -v '\^{}' | head -1 | sed 's#.*refs/tags/##')"
+  # 不用 head 截断：pipefail 下会让上游 git 因 SIGPIPE 让脚本直接退出
+  TAG="$(git ls-remote --tags --sort=-v:refname "$UPSTREAM" | sed -n 's#.*refs/tags/\(.*\)$#\1#p' | grep -v '\^{}' | sed -n '1p')"
 fi
 echo "==> 上游版本: $TAG"
 
