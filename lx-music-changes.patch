@@ -13,8 +13,83 @@ index 5cc09d4..ae201dd 100644
  const build = async(target, arch, packageType, publishType) => {
    if (target == 'dir') {
      await builder.build({
+diff --git a/src/common/defaultSetting.ts b/src/common/defaultSetting.ts
+index e4ce730..67a2469 100644
+--- a/src/common/defaultSetting.ts
++++ b/src/common/defaultSetting.ts
+@@ -46,6 +46,7 @@ const defaultSetting: LX.AppSetting = {
+   'player.waitPlayEndStop': true,
+   'player.waitPlayEndStopTime': '',
+   'player.autoSkipOnError': true,
++  'player.autoSwitchUserApiOnError': true,
+   'player.isAutoCleanPlayedList': false,
+   'player.soundEffect.convolution.fileName': '',
+   'player.soundEffect.convolution.mainGain': 10,
+diff --git a/src/common/ipcNames.ts b/src/common/ipcNames.ts
+index 123a426..44dadf1 100644
+--- a/src/common/ipcNames.ts
++++ b/src/common/ipcNames.ts
+@@ -109,6 +109,10 @@ const modules = {
+     request_user_api: 'request_user_api',
+     request_user_api_cancel: 'request_user_api_cancel',
+     get_user_api_status: 'get_user_api_status',
++    probe_user_api: 'probe_user_api',
++    try_user_api_sources: 'try_user_api_sources',
++    warm_user_api_probe: 'warm_user_api_probe',
++    probe_user_api_real: 'probe_user_api_real',
+     user_api_status: 'user_api_status',
+     user_api_show_update_alert: 'user_api_show_update_alert',
+     user_api_set_allow_update_alert: 'user_api_set_allow_update_alert',
+diff --git a/src/common/types/app_setting.d.ts b/src/common/types/app_setting.d.ts
+index 14ca61a..6a219aa 100644
+--- a/src/common/types/app_setting.d.ts
++++ b/src/common/types/app_setting.d.ts
+@@ -284,6 +284,11 @@ declare global {
+        */
+       'player.autoSkipOnError': boolean
+ 
++      /**
++       * 音频加载出错时自动切换自定义源
++       */
++      'player.autoSwitchUserApiOnError': boolean
++
+       /**
+        * 点击相同列表内的歌曲切歌时是否清空已播放列表（随机模式下列表内所有歌曲会重新参与随机）
+        */
+diff --git a/src/common/types/user_api.d.ts b/src/common/types/user_api.d.ts
+index 841bd09..d70345a 100644
+--- a/src/common/types/user_api.d.ts
++++ b/src/common/types/user_api.d.ts
+@@ -55,6 +55,27 @@ declare namespace LX {
+     interface ImportUserApi {
+       apiInfo: UserApiInfo
+       apiList: UserApiInfo[]
++      updated?: boolean
++    }
++
++    interface UserApiRealProbeResult {
++      apiId: string
++      ok: boolean
++      ms: number | null
++    }
++
++    interface UserApiProbeResult {
++      id: string
++      name: string
++      hosts: number
++      ok: number
++      warn: number
++      fail: number
++      okRate: number
++      reachRate: number
++      avgMs: number | null
++      bestMs: number | null
++      status: '可用' | '异常' | '失效'
+     }
+ 
+   }
 diff --git a/src/lang/en-us.json b/src/lang/en-us.json
-index bf9484a..61ef14e 100644
+index bf9484a..807cf13 100644
 --- a/src/lang/en-us.json
 +++ b/src/lang/en-us.json
 @@ -64,6 +64,7 @@
@@ -34,7 +109,15 @@ index bf9484a..61ef14e 100644
    "music_toggle_clean": "Cancel Change",
    "music_toggle_confirm": "Confirm",
    "music_toggle_duplicate_tip": "The same song already exists in the list, should I remove it and continue?",
-@@ -731,6 +734,9 @@
+@@ -526,6 +529,7 @@
+   "setting__play_auto_clean_played_list": "Empty played list when playing the same list as the current playlist",
+   "setting__play_auto_clean_played_list_tip": "All songs in the list in shuffle mode will participate in the random again.",
+   "setting__play_auto_skip_on_error": "Automatically switch songs when playback error occurs",
++  "setting__play_auto_switch_user_api_on_error": "Automatically switch custom API when audio fails to load",
+   "setting__play_detail": "Playback Detail Page",
+   "setting__play_detail_align": "Lyric Alignment",
+   "setting__play_detail_align_center": "Center",
+@@ -731,6 +735,9 @@
    "user_api__btn_import": "Import from Local File",
    "user_api__btn_import_online": "Import from Network",
    "user_api__btn_remove": "Remove",
@@ -44,7 +127,7 @@ index bf9484a..61ef14e 100644
    "user_api__import_file": "Choose Music API script file",
    "user_api__init_failed_alert": "Failed to initialize Music API \"{name}\": ",
    "user_api__max_tip": "There can only be a maximum of 20 APIs at the same time🤪.\n\nIf you want to continue importing, please remove some unnecessary APIs to make room.",
-@@ -744,5 +750,15 @@
+@@ -744,5 +751,42 @@
    "user_api_import_online__input_confirm": "Import",
    "user_api_import_online__input_loading": "Importing...",
    "user_api_import_online__input_tip": "Please enter an HTTP link",
@@ -59,10 +142,37 @@ index bf9484a..61ef14e 100644
 +  "user_api_one_click__load_failed": "Failed to load API list:\n{message}",
 +  "user_api_one_click__import": "Import",
 +  "user_api_one_click__import_success": "Successfully imported {ok} API(s)",
-+  "user_api_one_click__import_result": "Import finished: {ok} succeeded, {fail} failed\n\n{detail}"
++  "user_api_one_click__import_result": "Import finished: {ok} succeeded, {fail} failed\n\n{detail}",
++  "user_api_one_click__import_summary": "Import finished: {add} added, {update} updated, {skip} skipped",
++  "user_api_probe__done_switch": "Stability check done: switched to the most stable API \"{name}\" (success {rate}%, avg latency {ms}ms)",
++  "user_api_probe__done_keep": "Stability check done: current API is usable; the most stable is \"{name}\" (success {rate}%, avg latency {ms}ms)",
++  "user_api_probe__none": "Stability check done: no available API found",
++  "user_api_probe__failed": "Stability check failed: {message}",
++  "user_api__btn_test_latency": "Test Latency",
++  "user_api_probe_modal__title": "API Latency Test",
++  "user_api_probe_modal__tip": "Sorted by average latency. Connectivity = upstream host probe (success=2xx, reach=any response); Real playback = actually fetch the current song's URL and verify (most accurate).",
++  "user_api_probe_modal__loading": "Probing API latency, please wait...",
++  "user_api_probe_modal__empty": "No API to test",
++  "user_api_probe_modal__confirm": "Switch to selected API",
++  "user_api_probe_modal__failed": "Probe failed: {message}",
++  "user_api_probe_modal__hosts_label": "Hosts",
++  "user_api_probe_modal__ok_rate_label": "Success",
++  "user_api_probe_modal__reach_rate_label": "Reachable",
++  "user_api_probe_modal__avg_label": "Avg",
++  "user_api_probe_modal__best_label": "Best",
++  "user_api_probe_modal__conn_label": "Connectivity",
++  "user_api_probe_modal__real_label": "Real playback",
++  "user_api_probe_modal__real_testing": "Testing...",
++  "user_api_probe_modal__real_ok": "Playable {ms}ms",
++  "user_api_probe_modal__real_live": "Playable (currently in use)",
++  "user_api_probe_modal__real_bad": "Not playable",
++  "user_api_probe_modal__no_song": "(No song playing: real playback test needs a playing song; showing upstream connectivity only)",
++  "user_api_probe_modal__real_failed": "Real playback test failed: {message}",
++  "user_api_one_click__remove_invalid_confirm": "Detected {count} invalid API(s):\n{names}\n\nRemove them? (The API currently in use won't be removed)",
++  "user_api_one_click__remove_invalid_done": "Removed {count} invalid API(s)"
  }
 diff --git a/src/lang/ko-kr.json b/src/lang/ko-kr.json
-index eb6b6ae..460ba12 100644
+index eb6b6ae..c918259 100644
 --- a/src/lang/ko-kr.json
 +++ b/src/lang/ko-kr.json
 @@ -64,6 +64,7 @@
@@ -82,7 +192,15 @@ index eb6b6ae..460ba12 100644
    "music_toggle_clean": "변경 취소",
    "music_toggle_confirm": "확인",
    "music_toggle_duplicate_tip": "목록에 동일한 곡이 이미 존재합니다. 삭제하고 계속할까요?",
-@@ -731,6 +734,9 @@
+@@ -526,6 +529,7 @@
+   "setting__play_auto_clean_played_list": "현재 재생목록과 동일한 목록을 재생할 때 재생 완료 목록 비우기",
+   "setting__play_auto_clean_played_list_tip": "무작위 재생 모드에서 목록의 모든 곡이 다시 무작위 대상에 포함됩니다.",
+   "setting__play_auto_skip_on_error": "재생 오류 발생 시 자동으로 곡 전환",
++  "setting__play_auto_switch_user_api_on_error": "오디오 로드 오류 시 사용자 음악 소스 자동 전환",
+   "setting__play_detail": "재생 상세 페이지",
+   "setting__play_detail_align": "가사 정렬",
+   "setting__play_detail_align_center": "가운데",
+@@ -731,6 +735,9 @@
    "user_api__btn_import": "로컬 파일에서 가져오기",
    "user_api__btn_import_online": "네트워크에서 가져오기",
    "user_api__btn_remove": "삭제",
@@ -92,7 +210,7 @@ index eb6b6ae..460ba12 100644
    "user_api__import_file": "음악 API 스크립트 파일을 선택하세요",
    "user_api__init_failed_alert": "음악 API \"{name}\" 초기화 실패: ",
    "user_api__max_tip": "동시에 최대 20개의 API만 사용할 수 있습니다🤪.\n\n계속 가져오려면 불필요한 API를 삭제하여 공간을 확보해 주세요.",
-@@ -744,5 +750,15 @@
+@@ -744,5 +751,42 @@
    "user_api_import_online__input_confirm": "가져오기",
    "user_api_import_online__input_loading": "가져오는 중...",
    "user_api_import_online__input_tip": "HTTP 링크를 입력하세요",
@@ -107,10 +225,37 @@ index eb6b6ae..460ba12 100644
 +  "user_api_one_click__load_failed": "음악 소스 목록을 가져오지 못했습니다:\n{message}",
 +  "user_api_one_click__import": "가져오기",
 +  "user_api_one_click__import_success": "{ok}개의 음악 소스를 성공적으로 가져왔습니다",
-+  "user_api_one_click__import_result": "가져오기 완료: 성공 {ok}개, 실패 {fail}개\n\n{detail}"
++  "user_api_one_click__import_result": "가져오기 완료: 성공 {ok}개, 실패 {fail}개\n\n{detail}",
++  "user_api_one_click__import_summary": "가져오기 완료: 추가 {add}개, 업데이트 {update}개, 건너뜀 {skip}개",
++  "user_api_probe__done_switch": "안정성 검사 완료: 가장 안정적인 음악 소스 \"{name}\"(으)로 자동 전환했습니다 (성공률 {rate}%, 평균 지연 {ms}ms)",
++  "user_api_probe__done_keep": "안정성 검사 완료: 현재 음악 소스를 사용할 수 있습니다. 가장 안정적인 소스는 \"{name}\"입니다 (성공률 {rate}%, 평균 지연 {ms}ms)",
++  "user_api_probe__none": "안정성 검사 완료: 사용 가능한 음악 소스가 없습니다",
++  "user_api_probe__failed": "안정성 검사 실패: {message}",
++  "user_api__btn_test_latency": "지연 테스트",
++  "user_api_probe_modal__title": "음악 소스 지연 테스트",
++  "user_api_probe_modal__tip": "평균 지연 순 정렬. 연결성=업스트림 호스트 탐지(성공=2xx, 도달=응답 있음), 실제 재생=현재 곡의 링크를 실제로 받아 검증(가장 정확).",
++  "user_api_probe_modal__loading": "음악 소스 지연을 측정하는 중입니다. 잠시만 기다려 주세요...",
++  "user_api_probe_modal__empty": "테스트할 음악 소스가 없습니다",
++  "user_api_probe_modal__confirm": "선택한 소스로 전환",
++  "user_api_probe_modal__failed": "측정 실패: {message}",
++  "user_api_probe_modal__hosts_label": "호스트",
++  "user_api_probe_modal__ok_rate_label": "성공률",
++  "user_api_probe_modal__reach_rate_label": "도달률",
++  "user_api_probe_modal__avg_label": "평균",
++  "user_api_probe_modal__best_label": "최고",
++  "user_api_probe_modal__conn_label": "연결성",
++  "user_api_probe_modal__real_label": "실제 재생",
++  "user_api_probe_modal__real_testing": "테스트 중...",
++  "user_api_probe_modal__real_ok": "재생 가능 {ms}ms",
++  "user_api_probe_modal__real_live": "재생 가능 (현재 사용 중)",
++  "user_api_probe_modal__real_bad": "재생 불가",
++  "user_api_probe_modal__no_song": "(현재 재생 중인 곡 없음: 실제 재생 테스트는 곡 재생이 필요합니다. 업스트림 연결성만 표시)",
++  "user_api_probe_modal__real_failed": "실제 재생 테스트 실패: {message}",
++  "user_api_one_click__remove_invalid_confirm": "{count}개의 사용 불가 음악 소스가 감지되었습니다:\n{names}\n\n제거할까요? (현재 사용 중인 소스는 제거되지 않습니다)",
++  "user_api_one_click__remove_invalid_done": "사용 불가 음악 소스 {count}개를 제거했습니다"
  }
 diff --git a/src/lang/zh-cn.json b/src/lang/zh-cn.json
-index cc98c60..52a36be 100644
+index cc98c60..3ea464e 100644
 --- a/src/lang/zh-cn.json
 +++ b/src/lang/zh-cn.json
 @@ -64,6 +64,7 @@
@@ -130,7 +275,15 @@ index cc98c60..52a36be 100644
    "music_toggle_clean": "取消换源",
    "music_toggle_confirm": "确认",
    "music_toggle_duplicate_tip": "列表中已存在相同的歌曲，是否将其移除并继续？",
-@@ -731,6 +734,9 @@
+@@ -526,6 +529,7 @@
+   "setting__play_auto_clean_played_list": "点击与播放列表相同的列表切歌时清空已播放列表",
+   "setting__play_auto_clean_played_list_tip": "随机模式下列表内所有歌曲会重新参与随机",
+   "setting__play_auto_skip_on_error": "播放错误时自动切换歌曲",
++  "setting__play_auto_switch_user_api_on_error": "音频加载出错时自动切换自定义源",
+   "setting__play_detail": "播放详情页设置",
+   "setting__play_detail_align": "歌词对齐方式",
+   "setting__play_detail_align_center": "居中",
+@@ -731,6 +735,9 @@
    "user_api__btn_import": "本地导入",
    "user_api__btn_import_online": "在线导入",
    "user_api__btn_remove": "移除",
@@ -140,7 +293,7 @@ index cc98c60..52a36be 100644
    "user_api__import_file": "选择自定义源 API 脚本文件",
    "user_api__init_failed_alert": "自定义源「{name}」初始化失败：",
    "user_api__max_tip": "最多只能同时存在 20 个源哦🤪\n想要继续导入的话，请先移除一些旧的源腾出位置吧",
-@@ -744,5 +750,15 @@
+@@ -744,5 +751,42 @@
    "user_api_import_online__input_confirm": "导入",
    "user_api_import_online__input_loading": "导入中...",
    "user_api_import_online__input_tip": "请输入 HTTP 链接",
@@ -155,10 +308,37 @@ index cc98c60..52a36be 100644
 +  "user_api_one_click__load_failed": "获取音源列表失败：\n{message}",
 +  "user_api_one_click__import": "导入",
 +  "user_api_one_click__import_success": "成功导入 {ok} 个音源",
-+  "user_api_one_click__import_result": "导入完成：成功 {ok} 个，失败 {fail} 个\n\n{detail}"
++  "user_api_one_click__import_result": "导入完成：成功 {ok} 个，失败 {fail} 个\n\n{detail}",
++  "user_api_one_click__import_summary": "导入完成：新增 {add} 个，更新 {update} 个，跳过 {skip} 个",
++  "user_api_probe__done_switch": "稳定性探测完成：已自动切换到最稳定的音源「{name}」（成功率 {rate}%，平均延迟 {ms}ms）",
++  "user_api_probe__done_keep": "稳定性探测完成：当前音源可用，最稳定的源为「{name}」（成功率 {rate}%，平均延迟 {ms}ms）",
++  "user_api_probe__none": "稳定性探测完成：未发现可用音源",
++  "user_api_probe__failed": "稳定性探测失败：{message}",
++  "user_api__btn_test_latency": "测试延迟",
++  "user_api_probe_modal__title": "音源延迟测试",
++  "user_api_probe_modal__tip": "按平均延迟排序；「连通性」＝上游域名探测（成功率2xx/可达率有响应），「真实播放」＝用当前歌曲实际取链接并验证（最准）。",
++  "user_api_probe_modal__loading": "正在探测各音源延迟，请稍候...",
++  "user_api_probe_modal__empty": "没有可测试的音源",
++  "user_api_probe_modal__confirm": "切换到选中音源",
++  "user_api_probe_modal__failed": "探测失败：{message}",
++  "user_api_probe_modal__hosts_label": "主机数",
++  "user_api_probe_modal__ok_rate_label": "成功率",
++  "user_api_probe_modal__reach_rate_label": "可达率",
++  "user_api_probe_modal__avg_label": "平均延迟",
++  "user_api_probe_modal__best_label": "最佳延迟",
++  "user_api_probe_modal__conn_label": "连通性",
++  "user_api_probe_modal__real_label": "真实播放",
++  "user_api_probe_modal__real_testing": "测试中…",
++  "user_api_probe_modal__real_ok": "可播放 {ms}ms",
++  "user_api_probe_modal__real_live": "可播放（当前正在使用）",
++  "user_api_probe_modal__real_bad": "不可播放",
++  "user_api_probe_modal__no_song": "（当前未在播放歌曲：真实播放测试需先播放一首歌，暂只显示上游连通性）",
++  "user_api_probe_modal__real_failed": "真实播放测试失败：{message}",
++  "user_api_one_click__remove_invalid_confirm": "检测到 {count} 个已失效音源：\n{names}\n\n是否移除它们？（当前正在使用的源不会移除）",
++  "user_api_one_click__remove_invalid_done": "已移除 {count} 个失效音源"
  }
 diff --git a/src/lang/zh-tw.json b/src/lang/zh-tw.json
-index 7fdbcd9..77e2aed 100644
+index 7fdbcd9..e7be37a 100644
 --- a/src/lang/zh-tw.json
 +++ b/src/lang/zh-tw.json
 @@ -64,6 +64,7 @@
@@ -178,7 +358,15 @@ index 7fdbcd9..77e2aed 100644
    "music_toggle_clean": "取消變更",
    "music_toggle_confirm": "確認",
    "music_toggle_duplicate_tip": "列表中已存在相同的歌曲，是否將其移除並繼續？",
-@@ -731,6 +734,9 @@
+@@ -526,6 +529,7 @@
+   "setting__play_auto_clean_played_list": "點擊與播放清單相同的清單切歌時清空已播放清單",
+   "setting__play_auto_clean_played_list_tip": "隨機模式下清單內所有歌曲會重新參與隨機",
+   "setting__play_auto_skip_on_error": "播放錯誤時自動切換歌曲",
++  "setting__play_auto_switch_user_api_on_error": "音訊載入出錯時自動切換自訂音源",
+   "setting__play_detail": "播放詳情頁設定",
+   "setting__play_detail_align": "歌詞對齊方式",
+   "setting__play_detail_align_center": "置中",
+@@ -731,6 +735,9 @@
    "user_api__btn_import": "從本機匯入",
    "user_api__btn_import_online": "從線上匯入",
    "user_api__btn_remove": "移除",
@@ -188,7 +376,7 @@ index 7fdbcd9..77e2aed 100644
    "user_api__import_file": "選取自訂來源 API 腳本檔案",
    "user_api__init_failed_alert": "自訂來源 API「{name}」初始化失敗：",
    "user_api__max_tip": "最多只能同時存在 20 個 API 哦🤪\n想要繼續匯入的話，請先移除一些舊的 API 騰出位置吧",
-@@ -744,5 +750,15 @@
+@@ -744,5 +751,42 @@
    "user_api_import_online__input_confirm": "匯入",
    "user_api_import_online__input_loading": "匯入中...",
    "user_api_import_online__input_tip": "請輸入 HTTP 連結",
@@ -203,8 +391,770 @@ index 7fdbcd9..77e2aed 100644
 +  "user_api_one_click__load_failed": "取得音源清單失敗：\n{message}",
 +  "user_api_one_click__import": "匯入",
 +  "user_api_one_click__import_success": "成功匯入 {ok} 個音源",
-+  "user_api_one_click__import_result": "匯入完成：成功 {ok} 個，失敗 {fail} 個\n\n{detail}"
++  "user_api_one_click__import_result": "匯入完成：成功 {ok} 個，失敗 {fail} 個\n\n{detail}",
++  "user_api_one_click__import_summary": "匯入完成：新增 {add} 個，更新 {update} 個，跳過 {skip} 個",
++  "user_api_probe__done_switch": "穩定性偵測完成：已自動切換到最穩定的音源「{name}」（成功率 {rate}%，平均延遲 {ms}ms）",
++  "user_api_probe__done_keep": "穩定性偵測完成：目前音源可用，最穩定的音源為「{name}」（成功率 {rate}%，平均延遲 {ms}ms）",
++  "user_api_probe__none": "穩定性偵測完成：未發現可用音源",
++  "user_api_probe__failed": "穩定性偵測失敗：{message}",
++  "user_api__btn_test_latency": "測試延遲",
++  "user_api_probe_modal__title": "音源延遲測試",
++  "user_api_probe_modal__tip": "依平均延遲排序；「連通性」＝上游網域偵測（成功率2xx／可達率有回應），「真實播放」＝用目前歌曲實際取連結並驗證（最準）。",
++  "user_api_probe_modal__loading": "正在偵測各音源延遲，請稍候...",
++  "user_api_probe_modal__empty": "沒有可測試的音源",
++  "user_api_probe_modal__confirm": "切換到選取音源",
++  "user_api_probe_modal__failed": "偵測失敗：{message}",
++  "user_api_probe_modal__hosts_label": "主機數",
++  "user_api_probe_modal__ok_rate_label": "成功率",
++  "user_api_probe_modal__reach_rate_label": "可達率",
++  "user_api_probe_modal__avg_label": "平均延遲",
++  "user_api_probe_modal__best_label": "最佳延遲",
++  "user_api_probe_modal__conn_label": "連通性",
++  "user_api_probe_modal__real_label": "真實播放",
++  "user_api_probe_modal__real_testing": "測試中…",
++  "user_api_probe_modal__real_ok": "可播放 {ms}ms",
++  "user_api_probe_modal__real_live": "可播放（目前正在使用）",
++  "user_api_probe_modal__real_bad": "不可播放",
++  "user_api_probe_modal__no_song": "（目前未在播放歌曲：真實播放測試需先播放一首歌，暫只顯示上游連通性）",
++  "user_api_probe_modal__real_failed": "真實播放測試失敗：{message}",
++  "user_api_one_click__remove_invalid_confirm": "偵測到 {count} 個已失效音源：\n{names}\n\n是否移除它們？（目前正在使用的音源不會移除）",
++  "user_api_one_click__remove_invalid_done": "已移除 {count} 個失效音源"
  }
+diff --git a/src/main/modules/userApi/index.ts b/src/main/modules/userApi/index.ts
+index fe26d39..0bf9e6d 100644
+--- a/src/main/modules/userApi/index.ts
++++ b/src/main/modules/userApi/index.ts
+@@ -7,9 +7,13 @@ let userApiId: string | null
+ export const getApiList = getUserApis
+ 
+ export const importApi = async(script: string): Promise<LX.UserApi.ImportUserApi> => {
++  const { apiInfo, updated } = await handleImportApi(script)
++  // 覆盖更新了当前正在使用的源时，重建运行窗口让新脚本立即生效
++  if (updated && userApiId === apiInfo.id) await loadApi(apiInfo.id)
+   return {
+-    apiInfo: await handleImportApi(script),
++    apiInfo,
+     apiList: getUserApis(),
++    updated,
+   }
+ }
+ export const removeApi = async(ids: string[]): Promise<LX.UserApi.UserApiInfo[]> => {
+@@ -39,6 +43,8 @@ export const setAllowShowUpdateAlert = (id: string, enable: boolean) => {
+ 
+ 
+ export * from './rendererEvent/rendererEvent'
++export { probeUserApis } from './probe'
++export { tryApisForMusicUrl, warmProbeWindows, probeSourcesReal } from './parallel'
+ 
+ export default () => {
+   init()
+diff --git a/src/main/modules/userApi/main.ts b/src/main/modules/userApi/main.ts
+index 96aad60..5fe0f59 100644
+--- a/src/main/modules/userApi/main.ts
++++ b/src/main/modules/userApi/main.ts
+@@ -143,6 +143,61 @@ export const closeWindow = async() => {
+   browserWindow = null
+ }
+ 
++const ensureHtml = async() => {
++  dir ??= process.env.NODE_ENV !== 'production' ? webpackUserApiPath : path.join(__dirname, 'userApi')
++  // eslint-disable-next-line require-atomic-updates
++  if (!html) html = await fs.promises.readFile(path.join(dir, 'renderer/user-api.html'), 'utf8')
++  return html
++}
++const getUserApiPreloadUrl = () => process.env.NODE_ENV !== 'production'
++  ? `${path.join(__dirname, '../dist/user-api-preload.js')}`
++  : `${path.join(__dirname, 'user-api-preload.js')}`
++
++// 并行预探用的隐藏窗口：独立于当前播放源，加载指定自定义源脚本，可单独发请求
++export const createProbeWindow = async(userApi: LX.UserApi.UserApiInfo): Promise<Electron.BrowserWindow> => {
++  const pageHtml = await ensureHtml()
++  const win = new BrowserWindow({
++    resizable: false,
++    minimizable: false,
++    maximizable: false,
++    fullscreenable: false,
++    roundedCorners: false,
++    hasShadow: false,
++    show: false,
++    webPreferences: {
++      // 独立、非持久化的内存 session，避免与正在播放的源共享缓存/存储
++      partition: 'probe-userapi',
++      contextIsolation: true,
++      nodeIntegration: false,
++      nodeIntegrationInWorker: false,
++      sandbox: false,
++      spellcheck: false,
++      autoplayPolicy: 'document-user-activation-required',
++      enableWebSQL: false,
++      disableDialogs: true,
++      webgl: false,
++      images: false,
++      preload: getUserApiPreloadUrl(),
++    },
++  })
++  for (const eventName of denyEvents) {
++    (win.webContents as any).on(eventName, (event: Electron.Event) => { event.preventDefault() })
++  }
++  win.webContents.session.setPermissionRequestHandler((webContents, permission, resolve) => { resolve(false) })
++  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
++  await win.loadURL('data:text/html;charset=UTF-8,' + encodeURIComponent(pageHtml))
++  win.on('ready-to-show', async() => {
++    mainSend(win, USER_API_RENDERER_EVENT_NAME.initEnv, { ...userApi, script: await getScript(userApi.id), proxy: getProxy() })
++  })
++  return win
++}
++
++export const destroyProbeWindow = async(win: Electron.BrowserWindow) => {
++  try {
++    if (!win.isDestroyed()) win.destroy()
++  } catch {}
++}
++
+ export const sendEvent = <T = any>(name: string, params?: T) => {
+   if (!browserWindow) return
+   mainSend(browserWindow, name, params)
+diff --git a/src/main/modules/userApi/parallel.ts b/src/main/modules/userApi/parallel.ts
+new file mode 100644
+index 0000000..2fc86ca
+--- /dev/null
++++ b/src/main/modules/userApi/parallel.ts
+@@ -0,0 +1,205 @@
++import http from 'node:http'
++import https from 'node:https'
++
++import { createProbeWindow, destroyProbeWindow } from './main'
++import { requestOnWindow, waitProbeReady } from './rendererEvent/rendererEvent'
++import { getUserApis } from './utils'
++
++const URL_CHECK_TIMEOUT = 4000
++const REQUEST_TIMEOUT = 5000
++const READY_TIMEOUT = 6000
++const MASTER_EXTRA = 1500
++const MAX_PARALLEL = 10
++
++// 探测窗口池：复用已加载好的源窗口，避免每次失败都重建窗口（1~3s）
++const POOL_MAX = MAX_PARALLEL
++const POOL_IDLE = 60_000
++interface PoolEntry { win: Electron.BrowserWindow, lastUsed: number }
++const probePool = new Map<string, PoolEntry>()
++let running = false
++
++const evictIdle = () => {
++  const now = Date.now()
++  for (const [id, entry] of probePool) {
++    if (entry.win.isDestroyed() || now - entry.lastUsed > POOL_IDLE) {
++      probePool.delete(id)
++      if (!entry.win.isDestroyed()) void destroyProbeWindow(entry.win)
++    }
++  }
++}
++const evictLruIfFull = () => {
++  if (probePool.size < POOL_MAX) return
++  let lruId: string | null = null
++  let lruTime = Infinity
++  for (const [id, entry] of probePool) {
++    if (entry.lastUsed < lruTime) { lruTime = entry.lastUsed; lruId = id }
++  }
++  if (lruId) {
++    const entry = probePool.get(lruId)!
++    probePool.delete(lruId)
++    if (!entry.win.isDestroyed()) void destroyProbeWindow(entry.win)
++  }
++}
++// 取（复用或新建）一个已就绪的探测窗口。返回 null 表示该源不可用
++const acquireWindow = async(apiInfo: LX.UserApi.UserApiInfo): Promise<Electron.BrowserWindow | null> => {
++  evictIdle()
++  const cached = probePool.get(apiInfo.id)
++  if (cached && !cached.win.isDestroyed()) {
++    cached.lastUsed = Date.now()
++    return cached.win
++  }
++  evictLruIfFull()
++  const readyPromise = waitProbeReady(apiInfo.id, READY_TIMEOUT)
++  const win = await createProbeWindow(apiInfo)
++  const ready = await readyPromise
++  if (!ready) {
++    void destroyProbeWindow(win)
++    return null
++  }
++  // 并发可能重复创建同源窗口：以池中已有的为准，销毁多出来的
++  const existed = probePool.get(apiInfo.id)
++  if (existed && !existed.win.isDestroyed()) {
++    void destroyProbeWindow(win)
++    existed.lastUsed = Date.now()
++    return existed.win
++  }
++  const entry: PoolEntry = { win, lastUsed: Date.now() }
++  probePool.set(apiInfo.id, entry)
++  win.on('closed', () => {
++    if (probePool.get(apiInfo.id)?.win === win) probePool.delete(apiInfo.id)
++  })
++  return win
++}
++
++const checkUrlAlive = async(url: string): Promise<boolean> => await new Promise(resolve => {
++  let settled = false
++  const done = (ok: boolean) => {
++    if (settled) return
++    settled = true
++    clearTimeout(timer)
++    resolve(ok)
++  }
++  const timer = setTimeout(() => { done(false) }, URL_CHECK_TIMEOUT)
++  try {
++    const u = new URL(url)
++    const getter = (u.protocol === 'http:' ? http.get : https.get) as typeof http.get
++    const req = getter(url, { headers: { 'User-Agent': 'lx-music-probe/1.0', Range: 'bytes=0-1' } }, res => {
++      const code = res.statusCode ?? 0
++      res.destroy()
++      done(code >= 200 && code < 400)
++    })
++    req.on('error', () => { done(false) })
++    req.setTimeout(URL_CHECK_TIMEOUT, () => { req.destroy(); done(false) })
++  } catch {
++    done(false)
++  }
++})
++
++export interface ParallelTryResult {
++  apiId: string
++  url: string
++}
++
++// 并行在前 maxParallel 个候选源里尝试取该歌播放链接，返回第一个“可取到且 URL 存活”的源
++export const tryApisForMusicUrl = async(apiIds: string[], data: any, maxParallel = MAX_PARALLEL): Promise<ParallelTryResult | null> => {
++  if (running) return null
++  const apiById = new Map(getUserApis().map(api => [api.id, api]))
++  const ids = apiIds.filter(id => apiById.has(id)).slice(0, maxParallel)
++  if (!ids.length) return null
++
++  running = true
++  try {
++    return await new Promise<ParallelTryResult | null>(resolve => {
++      let settled = false
++      let remaining = ids.length
++      let masterTimer: NodeJS.Timeout | null = null
++      const finish = (val: ParallelTryResult | null) => {
++        if (settled) return
++        settled = true
++        if (masterTimer) clearTimeout(masterTimer)
++        resolve(val)
++      }
++      masterTimer = setTimeout(() => { finish(null) }, READY_TIMEOUT + REQUEST_TIMEOUT + MASTER_EXTRA)
++      for (const id of ids) {
++        void (async() => {
++          try {
++            const win = await acquireWindow(apiById.get(id)!)
++            if (!win) return
++            const res = await requestOnWindow(win, data, REQUEST_TIMEOUT)
++            const url = res?.data?.url
++            if (typeof url === 'string' && /^https?:/.test(url) && await checkUrlAlive(url)) finish({ apiId: id, url })
++          } catch {
++            // 单个源失败不影响其它并行源
++          } finally {
++            remaining--
++            if (remaining === 0) finish(null)
++          }
++        })()
++      }
++    })
++  } finally {
++    // eslint-disable-next-line require-atomic-updates
++    running = false
++  }
++}
++
++// 预热：把前 max 个候选源窗口提前加载进池，使首次换源无需再建窗（后台、可失败）
++export const warmProbeWindows = async(apiIds: string[], max = 4): Promise<void> => {
++  const apiById = new Map(getUserApis().map(api => [api.id, api]))
++  const ids = apiIds.filter(id => apiById.has(id)).slice(0, max)
++  for (const id of ids) {
++    const cached = probePool.get(id)
++    if (cached && !cached.win.isDestroyed()) continue
++    try {
++      await acquireWindow(apiById.get(id)!)
++    } catch {
++      // 预热失败忽略
++    }
++  }
++}
++
++export interface RealProbeResult {
++  apiId: string
++  ok: boolean
++  ms: number | null
++}
++
++const mapLimit = async<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
++  const results: R[] = new Array(items.length)
++  let index = 0
++  const worker = async() => {
++    while (index < items.length) {
++      const current = index++
++      results[current] = await fn(items[current])
++    }
++  }
++  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
++  return results
++}
++
++// 真实可用性测试：对每个源依次尝试多个候选（如 toggleMusicInfo、原曲），取到存活链接即可播
++export const probeSourcesReal = async(apiIds: string[], requests: any[], concurrency = 3, timeoutMs = 8000): Promise<RealProbeResult[]> => {
++  const apiById = new Map(getUserApis().map(api => [api.id, api]))
++  const ids = apiIds.filter(id => apiById.has(id))
++  return await mapLimit(ids, concurrency, async id => {
++    try {
++      const win = await acquireWindow(apiById.get(id)!)
++      if (!win) return { apiId: id, ok: false, ms: null }
++      const start = Date.now()
++      for (const req of requests) {
++        try {
++          const res = await requestOnWindow(win, req, timeoutMs)
++          const url = res?.data?.url
++          if (typeof url === 'string' && /^https?:/.test(url) && await checkUrlAlive(url)) {
++            return { apiId: id, ok: true, ms: Date.now() - start }
++          }
++        } catch {
++          // 该候选失败，试下一个
++        }
++      }
++      return { apiId: id, ok: false, ms: null }
++    } catch {
++      return { apiId: id, ok: false, ms: null }
++    }
++  })
++}
+diff --git a/src/main/modules/userApi/probe.ts b/src/main/modules/userApi/probe.ts
+new file mode 100644
+index 0000000..dd3fa08
+--- /dev/null
++++ b/src/main/modules/userApi/probe.ts
+@@ -0,0 +1,218 @@
++import http from 'node:http'
++import https from 'node:https'
++
++import { getScript, getUserApis } from './utils'
++
++// 多轮探测：对每个上游主机发起 PROBE_ROUNDS 次 GET，按成功(2xx)/异常(有响应非2xx)/失败(不可达)
++// 统计成功率与延迟。只探测上游主机可达性，不执行音源脚本，口径与源仓库 health-check 一致。
++const PROBE_TIMEOUT = 6000
++const PROBE_ROUNDS = 3
++const PROBE_CONCURRENCY = 20
++const MAX_REDIRECTS = 2
++const USER_AGENT = 'lx-music-desktop-stability-probe/1.0'
++
++// 主机提取正则（移植自源仓库 probe.py）
++const RE_HOST = /https?:\/\/((?:[A-Za-z0-9-]+\.)+(?:xn--[A-Za-z0-9-]+|[A-Za-z]{2,}))/g
++const RE_IPV4 = /https?:\/\/((?:\d{1,3}\.){3}\d{1,3})/g
++const RE_IPV4_LITERAL = /^(?:\d{1,3}\.){3}\d{1,3}$/
++const RE_HEX_RUN = /(?:\\x[0-9a-fA-F]{2}){4,}/g
++const RE_HEX_BYTE = /\\x([0-9a-fA-F]{2})/g
++const RE_SCHEME_HEAD = /^https?:\/\//
++const RE_ADDR_TAIL = /^[\d.]+\/?$/
++const RE_SERVER_CONFIG = /SERVER_SCRIPT_CONFIG'?\]?\s*=\s*(\{[^{}]*\})/g
++const DOMAIN_BLOCKLIST = new Set(['www.w3.org', 'gistry.npm'])
++const MAX_URL_PARTS = 3
++const MAX_TAIL_CANDIDATES = 32
++const MAX_URL_LEN = 256
++
++const matchAllHosts = (text: string, re: RegExp): string[] => {
++  const out: string[] = []
++  for (const m of text.matchAll(re)) out.push(m[1].toLowerCase())
++  return out
++}
++
++const decodeHexFragments = (text: string): string[] => {
++  const out: string[] = []
++  for (const run of text.matchAll(RE_HEX_RUN)) {
++    const bytes: number[] = []
++    for (const h of run[0].matchAll(RE_HEX_BYTE)) bytes.push(parseInt(h[1], 16))
++    out.push(Buffer.from(bytes).toString('latin1'))
++  }
++  return out
++}
++
++// 把被混淆阵列切碎的 IPv4 地址拼回完整主机名（首段带 scheme，续段是纯数字/点）
++const joinedIpv4Hosts = (fragments: string[]): string[] => {
++  const heads = fragments.filter(f => RE_SCHEME_HEAD.test(f))
++  const tails = fragments.filter(f => RE_ADDR_TAIL.test(f)).slice(0, MAX_TAIL_CANDIDATES)
++  const combos: string[][] = tails.map(t => [t])
++  if (MAX_URL_PARTS >= 3) {
++    for (const first of tails) {
++      for (const second of tails) {
++        if (first !== second) combos.push([first, second])
++      }
++    }
++  }
++  const hosts = new Set<string>()
++  for (const head of heads) {
++    for (const parts of combos) {
++      const url = head + parts.join('')
++      if (url.length > MAX_URL_LEN) continue
++      let hostname: string
++      try {
++        hostname = new URL(url).hostname
++      } catch {
++        continue
++      }
++      if (hostname && RE_IPV4_LITERAL.test(hostname)) hosts.add(hostname.toLowerCase())
++    }
++  }
++  return [...hosts]
++}
++
++export const extractHosts = (text: string): string[] => {
++  const hosts = new Set<string>()
++  matchAllHosts(text, RE_HOST).forEach(h => hosts.add(h))
++  matchAllHosts(text, RE_IPV4).forEach(h => hosts.add(h))
++
++  const fragments = decodeHexFragments(text)
++  for (const decoded of fragments) {
++    matchAllHosts(decoded, RE_HOST).forEach(h => hosts.add(h))
++    matchAllHosts(decoded, RE_IPV4).forEach(h => hosts.add(h))
++  }
++  joinedIpv4Hosts(fragments).forEach(h => hosts.add(h))
++
++  for (const cfg of text.matchAll(RE_SERVER_CONFIG)) {
++    try {
++      const config = JSON.parse(cfg[1])
++      const apiUrl: string | undefined = config.apiUrl || config.api_url
++      if (apiUrl) {
++        const hostname = new URL(apiUrl).hostname
++        if (hostname) hosts.add(hostname.toLowerCase())
++      }
++    } catch {
++      // 配置块不是合法 JSON，忽略
++    }
++  }
++
++  return [...hosts].filter(h => !DOMAIN_BLOCKLIST.has(h)).sort()
++}
++
++interface ProbeAttempt {
++  raw: 'ok' | 'warn' | 'failed'
++  ms: number
++}
++
++const probeHost = async(host: string): Promise<ProbeAttempt> => {
++  const scheme = RE_IPV4_LITERAL.test(host) ? 'http' : 'https'
++  const start = Date.now()
++
++  return new Promise(resolve => {
++    let settled = false
++    const done = (raw: ProbeAttempt['raw']) => {
++      if (settled) return
++      settled = true
++      clearTimeout(timer)
++      resolve({ raw, ms: Date.now() - start })
++    }
++    const timer = setTimeout(() => { done('failed') }, PROBE_TIMEOUT)
++
++    const attempt = (url: string, redirectsLeft: number) => {
++      if (settled) return
++      let req: http.ClientRequest
++      try {
++        const protocol = new URL(url).protocol
++        const getter = (protocol === 'http:' ? http.get : https.get) as typeof http.get
++        req = getter(url, { headers: { 'User-Agent': USER_AGENT } }, res => {
++          const code = res.statusCode ?? 0
++          if (code >= 300 && code < 400 && res.headers.location && redirectsLeft > 0) {
++            res.resume()
++            try {
++              attempt(new URL(res.headers.location, url).toString(), redirectsLeft - 1)
++            } catch {
++              done('warn')
++            }
++            return
++          }
++          res.resume()
++          done(code >= 200 && code < 300 ? 'ok' : 'warn')
++        })
++      } catch {
++        done('failed')
++        return
++      }
++      req.on('error', () => { done('failed') })
++    }
++
++    attempt(`${scheme}://${host}/`, MAX_REDIRECTS)
++  })
++}
++
++const mapLimit = async<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
++  const results: R[] = new Array(items.length)
++  let index = 0
++  const worker = async() => {
++    while (index < items.length) {
++      const current = index++
++      results[current] = await fn(items[current])
++    }
++  }
++  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
++  return results
++}
++
++const probeHostRounds = async(host: string): Promise<ProbeAttempt[]> => {
++  const attempts: ProbeAttempt[] = []
++  for (let i = 0; i < PROBE_ROUNDS; i++) attempts.push(await probeHost(host))
++  return attempts
++}
++
++export const probeUserApis = async(): Promise<LX.UserApi.UserApiProbeResult[]> => {
++  const apis = getUserApis()
++  if (!apis.length) return []
++
++  const sourceHosts = await Promise.all(apis.map(async api => ({
++    api,
++    hosts: extractHosts(await getScript(api.id)),
++  })))
++
++  const allHosts = [...new Set(sourceHosts.flatMap(item => item.hosts))]
++  const probed = await mapLimit(allHosts, PROBE_CONCURRENCY, async host => ({ host, attempts: await probeHostRounds(host) }))
++  const attemptMap = new Map(probed.map(item => [item.host, item.attempts]))
++
++  const results: LX.UserApi.UserApiProbeResult[] = sourceHosts.map(({ api, hosts }) => {
++    let ok = 0
++    let warn = 0
++    let fail = 0
++    const okLatencies: number[] = []
++    for (const host of hosts) {
++      for (const attempt of attemptMap.get(host) ?? []) {
++        if (attempt.raw === 'ok') {
++          ok++
++          okLatencies.push(attempt.ms)
++        } else if (attempt.raw === 'warn') warn++
++        else fail++
++      }
++    }
++    const total = ok + warn + fail
++    return {
++      id: api.id,
++      name: api.name,
++      hosts: hosts.length,
++      ok,
++      warn,
++      fail,
++      okRate: total ? ok / total : 0,
++      reachRate: total ? (ok + warn) / total : 0,
++      avgMs: okLatencies.length ? Math.round(okLatencies.reduce((s, n) => s + n, 0) / okLatencies.length) : null,
++      bestMs: okLatencies.length ? Math.min(...okLatencies) : null,
++      status: ok > 0 ? '可用' : warn > 0 ? '异常' : '失效',
++    }
++  })
++
++  const statusPriority = { 可用: 0, 异常: 1, 失效: 2 } as const
++  results.sort((a, b) => statusPriority[a.status] - statusPriority[b.status] ||
++    b.okRate - a.okRate ||
++    ((a.avgMs ?? Number.MAX_SAFE_INTEGER) - (b.avgMs ?? Number.MAX_SAFE_INTEGER)))
++  return results
++}
+diff --git a/src/main/modules/userApi/renderer/preload.js b/src/main/modules/userApi/renderer/preload.js
+index b53ae92..69b3061 100644
+--- a/src/main/modules/userApi/renderer/preload.js
++++ b/src/main/modules/userApi/renderer/preload.js
+@@ -11,6 +11,7 @@ const sendMessage = (action, data, status, message) => {
+ }
+ 
+ let isInitedApi = false
++let currentApiId = ''
+ const proxy = {
+   host: '',
+   port: '',
+@@ -127,7 +128,7 @@ const handleRequest = (context, { requestKey, data }) => {
+  */
+ const handleInit = (context, info) => {
+   if (!info) {
+-    sendMessage(USER_API_RENDERER_EVENT_NAME.init, null, false, 'Missing required parameter init info')
++    sendMessage(USER_API_RENDERER_EVENT_NAME.init, { apiId: currentApiId }, false, 'Missing required parameter init info')
+     // sendMessage(USER_API_RENDERER_EVENT_NAME.init, false, null, typeof info.message === 'string' ? info.message.substring(0, 100) : '')
+     return
+   }
+@@ -135,7 +136,7 @@ const handleInit = (context, info) => {
+     sendMessage(USER_API_RENDERER_EVENT_NAME.openDevTools)
+   }
+   // if (!info.status) {
+-  //   sendMessage(USER_API_RENDERER_EVENT_NAME.init, null, false, 'Missing required parameter init info')
++  //   sendMessage(USER_API_RENDERER_EVENT_NAME.init, { apiId: currentApiId }, false, 'Missing required parameter init info')
+   //   // sendMessage(USER_API_RENDERER_EVENT_NAME.init, false, null, typeof info.message === 'string' ? info.message.substring(0, 100) : '')
+   //   return
+   // }
+@@ -156,9 +157,10 @@ const handleInit = (context, info) => {
+     }
+   } catch (error) {
+     console.log(error)
+-    sendMessage(USER_API_RENDERER_EVENT_NAME.init, null, false, error.message)
++    sendMessage(USER_API_RENDERER_EVENT_NAME.init, { apiId: currentApiId }, false, error.message)
+     return
+   }
++  sourceInfo.apiId = currentApiId
+   sendMessage(USER_API_RENDERER_EVENT_NAME.init, sourceInfo, true)
+ 
+   ipcRenderer.on(USER_API_RENDERER_EVENT_NAME.request, (event, data) => {
+@@ -182,10 +184,11 @@ const onError = (errorMessage) => {
+   if (isInitedApi) return
+   isInitedApi = true
+   if (errorMessage.length > 1024) errorMessage = errorMessage.substring(0, 1024) + '...'
+-  sendMessage(USER_API_RENDERER_EVENT_NAME.init, null, false, errorMessage)
++  sendMessage(USER_API_RENDERER_EVENT_NAME.init, { apiId: currentApiId }, false, errorMessage)
+ }
+ 
+ const initEnv = (userApi) => {
++  currentApiId = userApi.id
+   proxy.host = userApi.proxy.host
+   proxy.port = userApi.proxy.port
+ 
+diff --git a/src/main/modules/userApi/rendererEvent/rendererEvent.ts b/src/main/modules/userApi/rendererEvent/rendererEvent.ts
+index 098cc77..104ad54 100644
+--- a/src/main/modules/userApi/rendererEvent/rendererEvent.ts
++++ b/src/main/modules/userApi/rendererEvent/rendererEvent.ts
+@@ -1,4 +1,4 @@
+-import { mainOn } from '@common/mainIpc'
++import { mainOn, mainSend } from '@common/mainIpc'
+ 
+ import USER_API_RENDERER_EVENT_NAME from './name'
+ import { createWindow, getProxy, openDevTools, sendEvent } from '../main'
+@@ -9,6 +9,30 @@ let userApi: LX.UserApi.UserApiInfo
+ let apiStatus: LX.UserApi.UserApiStatus = { status: true }
+ const requestQueue = new Map()
+ const timeouts = new Map<string, NodeJS.Timeout>()
++
++// 并行预探窗口的就绪等待（按 apiId 区分，避免影响当前播放源状态）
++const probeWaiters = new Map<string, (ok: boolean) => void>()
++export const waitProbeReady = async(apiId: string, timeoutMs = 8000): Promise<boolean> => await new Promise(resolve => {
++  let done = false
++  const timer = setTimeout(() => {
++    if (done) return
++    done = true
++    probeWaiters.delete(apiId)
++    resolve(false)
++  }, timeoutMs)
++  probeWaiters.set(apiId, ok => {
++    if (done) return
++    done = true
++    clearTimeout(timer)
++    resolve(ok)
++  })
++})
++const handleProbeInited = (apiId: string, status: boolean) => {
++  const resolver = probeWaiters.get(apiId)
++  if (!resolver) return
++  probeWaiters.delete(apiId)
++  resolver(status)
++}
+ interface InitParams {
+   params: {
+     status: boolean
+@@ -37,6 +61,12 @@ interface UpdateInfoParams {
+ 
+ export const init = () => {
+   const handleInit = ({ params: { status, message, data: apiInfo } }: InitParams) => {
++    // 来自并行预探窗口的 init：仅用于就绪信号，不改动当前源状态
++    const probeApiId = (apiInfo as any)?.apiId
++    if (probeApiId && (!userApi || probeApiId !== userApi.id)) {
++      handleProbeInited(probeApiId, !!status)
++      return
++    }
+     // console.log('inited')
+     // if (!status) {
+     //   console.log('init failed:', message)
+@@ -152,3 +182,17 @@ export const setAllowShowUpdateAlert = (id: string, enable: boolean) => {
+ export const sendRequest = (reqData: { requestKey: string, data: any }) => {
+   sendEvent(USER_API_RENDERER_EVENT_NAME.request, reqData)
+ }
++
++// 向指定的预探窗口发起请求（复用全局 response 按 requestKey 回传）
++export const requestOnWindow = async(win: Electron.BrowserWindow, data: any, timeoutMs = 8000): Promise<any> => await new Promise((resolve, reject) => {
++  const requestKey = `probe__${Math.random().toString(36).slice(2)}`
++  timeouts.set(requestKey, setTimeout(() => {
++    if (requestQueue.has(requestKey)) {
++      requestQueue.delete(requestKey)
++      reject(new Error('probe request timeout'))
++    }
++    timeouts.delete(requestKey)
++  }, timeoutMs))
++  requestQueue.set(requestKey, [resolve, reject])
++  mainSend(win, USER_API_RENDERER_EVENT_NAME.request, { requestKey, data })
++})
+diff --git a/src/main/modules/userApi/utils.ts b/src/main/modules/userApi/utils.ts
+index 6a56e12..3d81afc 100644
+--- a/src/main/modules/userApi/utils.ts
++++ b/src/main/modules/userApi/utils.ts
+@@ -107,7 +107,7 @@ const inflateScript = async(script: string) => new Promise<string>((resolve, rej
+     })
+   } else resolve(script)
+ })
+-export const importApi = async(scriptRaw: string): Promise<LX.UserApi.UserApiInfo> => {
++export const importApi = async(scriptRaw: string): Promise<{ apiInfo: LX.UserApi.UserApiInfo, updated: boolean }> => {
+   let scriptInfo = parseScriptInfo(scriptRaw)
+   const script = await deflateScript(scriptRaw)
+   userApis ??= []
+@@ -117,6 +117,18 @@ export const importApi = async(scriptRaw: string): Promise<LX.UserApi.UserApiInf
+       throw new Error(`导入失败，脚本内容与已有的源「${api.name}」相同`)
+     }
+   }
++  // 以「作者 + 名字」识别同一来源：version 相同视为已装过（跳过），不同视为新版本覆盖更新
++  const sameSource = userApis.find(api => (api.author ?? '') === scriptInfo.author && api.name === scriptInfo.name)
++  if (sameSource) {
++    if ((sameSource.version ?? '') === scriptInfo.version) {
++      throw new Error(`导入失败，脚本内容与已有的源「${sameSource.name}」相同`)
++    }
++    Object.assign(sameSource, scriptInfo)
++    scripts.set(sameSource.id, script)
++    saveData()
++    return { apiInfo: sameSource, updated: true }
++  }
++  if (userApis.length >= 20) throw new Error('导入失败，最多只能同时存在 20 个源')
+   const apiInfo = {
+     id: `user_api_${Math.random().toString().substring(2, 5)}_${Date.now()}`,
+     ...scriptInfo,
+@@ -125,7 +137,7 @@ export const importApi = async(scriptRaw: string): Promise<LX.UserApi.UserApiInf
+   userApis.push(apiInfo)
+   scripts.set(apiInfo.id, script)
+   saveData()
+-  return apiInfo
++  return { apiInfo, updated: false }
+ }
+ 
+ export const removeApi = (ids: string[]) => {
+diff --git a/src/main/modules/winMain/rendererEvent/userApi.ts b/src/main/modules/winMain/rendererEvent/userApi.ts
+index 06f9e6c..3c75ca2 100644
+--- a/src/main/modules/winMain/rendererEvent/userApi.ts
++++ b/src/main/modules/winMain/rendererEvent/userApi.ts
+@@ -6,6 +6,10 @@ import {
+   removeApi,
+   setApi,
+   getStatus,
++  probeUserApis,
++  tryApisForMusicUrl,
++  warmProbeWindows,
++  probeSourcesReal,
+   request,
+   cancelRequest,
+   setAllowShowUpdateAlert,
+@@ -29,6 +33,22 @@ export default () => {
+     return getApiList()
+   })
+ 
++  mainHandle<LX.UserApi.UserApiProbeResult[]>(WIN_MAIN_RENDERER_EVENT_NAME.probe_user_api, async() => {
++    return probeUserApis()
++  })
++
++  mainHandle<{ apiIds: string[], data: any }, { apiId: string, url: string } | null>(WIN_MAIN_RENDERER_EVENT_NAME.try_user_api_sources, async({ params }) => {
++    return tryApisForMusicUrl(params.apiIds, params.data)
++  })
++
++  mainHandle<string[]>(WIN_MAIN_RENDERER_EVENT_NAME.warm_user_api_probe, async({ params }) => {
++    return warmProbeWindows(params)
++  })
++
++  mainHandle<{ apiIds: string[], requests: any[] }, Array<{ apiId: string, ok: boolean, ms: number | null }>>(WIN_MAIN_RENDERER_EVENT_NAME.probe_user_api_real, async({ params }) => {
++    return probeSourcesReal(params.apiIds, params.requests)
++  })
++
+   mainHandle<LX.UserApi.UserApiStatus>(WIN_MAIN_RENDERER_EVENT_NAME.get_user_api_status, async() => {
+     return getStatus()
+   })
 diff --git a/src/renderer/assets/styles/index.less b/src/renderer/assets/styles/index.less
 index 1e15d45..e1c6792 100644
 --- a/src/renderer/assets/styles/index.less
@@ -712,6 +1662,563 @@ index 0000000..0d5aa7d
 +
 +  return { highlightIndex, canLocateCurrent, handleLocateCurrentPlay }
 +}
+diff --git a/src/renderer/core/player/action.ts b/src/renderer/core/player/action.ts
+index 88995d0..b9ea758 100644
+--- a/src/renderer/core/player/action.ts
++++ b/src/renderer/core/player/action.ts
+@@ -13,6 +13,11 @@ import {
+   removePlayedList,
+ } from '@renderer/store/player/action'
+ import { appSetting } from '@renderer/store/setting'
++import { tryUserApiSources } from '@renderer/utils/ipc'
++import { getPlayQuality } from '../music/utils'
++import { apiSource, userApi } from '@renderer/store'
++import { setUserApi } from '@renderer/core/apiSource'
++import { getProbeRanking, getSongSource, markParallelTried, wasParallelTried } from '@renderer/core/userApiSourceCache'
+ import { getMusicUrl, getPicPath, getLyricInfo } from '../music/index'
+ import { filterList } from './utils'
+ import { requestMsg } from '@renderer/utils/message'
+@@ -85,7 +90,102 @@ const delayRetry = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListItem, i
+     }
+   })
+ }
+-const getMusicPlayUrl = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListItem, isRefresh = false, isRetryed = false): Promise<string | null> => {
++const isUserApiId = (id?: string | null): id is string => !!id && /^user_api/.test(id)
++
++// 候选顺序：这首歌上次成功的源 → 测速“可用”按延迟 → “异常”/无数据按列表顺序；跳过测速判定“失效”的源
++const buildUserApiCandidateOrder = (songId?: string): string[] => {
++  const ids = userApi.list.map(api => api.id).filter(isUserApiId)
++  const ranking = getProbeRanking()
++  const rankIndex = new Map<string, number>()
++  const statusMap = new Map<string, string>()
++  ranking.forEach((item, index) => {
++    rankIndex.set(item.id, index)
++    statusMap.set(item.id, item.status)
++  })
++  const cached = getSongSource(songId)
++  const items: Array<{ id: string, group: number, key: number }> = []
++  ids.forEach((id, index) => {
++    if (id === cached) {
++      items.push({ id, group: 0, key: 0 })
++      return
++    }
++    const status = statusMap.get(id)
++    if (status === '失效') return
++    if (status === '可用') items.push({ id, group: 1, key: rankIndex.get(id) ?? 999 })
++    else if (status === '异常') items.push({ id, group: 2, key: rankIndex.get(id) ?? 999 })
++    else items.push({ id, group: 2, key: 1000 + index })
++  })
++  items.sort((a, b) => a.group - b.group || a.key - b.key)
++  return items.map(item => item.id)
++}
++
++// 当前自定义源彻底取不到链接时，按“智能顺序”切换到下一个自定义源（跳过已尝试的）
++const MAX_SWITCH_TRIES = 3
++const switchToNextUserApi = async(tried: string[], songId?: string): Promise<boolean> => {
++  const currentId = apiSource.value
++  if (!isUserApiId(currentId)) return false
++  if (!tried.includes(currentId)) tried.push(currentId)
++  // 每首歌最多顺序切换 MAX_SWITCH_TRIES 个源，避免源多时连续 load api 卡很久
++  if (tried.length >= MAX_SWITCH_TRIES) return false
++  const nextId = buildUserApiCandidateOrder(songId).find(id => !tried.includes(id))
++  if (!nextId) return false
++  tried.push(nextId)
++  try {
++    await setUserApi(nextId)
++  } catch (err) {
++    console.log('switch user api failed', nextId, err)
++    return false
++  }
++  return apiSource.value === nextId
++}
++
++export interface ParallelSwitchResult {
++  url: string | null
++  // 无 url 时：true=可以用旧的“顺序换源”兜底；false=应直接放弃（尽快跳下一首）
++  mayTrySequential: boolean
++}
++export const tryParallelSwitchForSong = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListItem): Promise<ParallelSwitchResult> => {
++  const mi = musicInfo as any
++  if (!appSetting['player.autoSwitchUserApiOnError']) return { url: null, mayTrySequential: true }
++  if (!isUserApiId(apiSource.value)) return { url: null, mayTrySequential: true }
++  if (!mi.source || mi.source === 'local' || !mi.meta) return { url: null, mayTrySequential: true }
++  const candidates = buildUserApiCandidateOrder(mi.id).filter(id => id !== apiSource.value)
++  if (!candidates.length) return { url: null, mayTrySequential: true }
++  // 同一首歌已经并行预探过就不再重复开窗（后续重试直接快速放弃，交给跳歌）
++  if (wasParallelTried(mi.id)) return { url: null, mayTrySequential: false }
++  markParallelTried(mi.id)
++  const type = getPlayQuality(appSetting['player.playQuality'], mi as LX.Music.MusicInfoOnline)
++  let hit: { apiId: string, url: string } | null
++  try {
++    hit = await tryUserApiSources(candidates.slice(0, 10), { source: mi.source, action: 'musicUrl', info: { type, musicInfo } })
++  } catch {
++    // 并行链路异常：退回旧的顺序换源兜底
++    return { url: null, mayTrySequential: true }
++  }
++  if (!hit) {
++    console.warn('[switch] parallel probe: no available source in', candidates.slice(0, 10))
++    return { url: null, mayTrySequential: false }
++  }
++  console.log('[switch] parallel probe hit:', hit.apiId)
++  try {
++    await setUserApi(hit.apiId)
++  } catch {
++    return { url: null, mayTrySequential: false }
++  }
++  return { url: hit.url, mayTrySequential: false }
++}
++
++// 音频加载出错场景：同一首歌内记录已尝试的自定义源，逐个切换
++let audioErrorTriedApiSources: string[] = []
++export const resetAudioErrorTriedApiSources = () => {
++  audioErrorTriedApiSources = []
++}
++export const trySwitchNextUserApiOnAudioError = async(songId?: string): Promise<boolean> => {
++  if (!isUserApiId(apiSource.value)) return false
++  return await switchToNextUserApi(audioErrorTriedApiSources, songId)
++}
++
++const getMusicPlayUrl = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListItem, isRefresh = false, isRetryed = false, triedApiSources: string[] = [], originApiId = ''): Promise<string | null> => {
+   // this.musicInfo.url = await getMusicPlayUrl(targetSong, type)
+   setAllStatus(window.i18n.t('player__getting_url'))
+   if (appSetting['player.autoSkipOnError']) addLoadTimeout()
+@@ -111,7 +211,7 @@ const getMusicPlayUrl = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListIt
+ 
+     return url
+   // eslint-disable-next-line @typescript-eslint/promise-function-async
+-  }).catch(err => {
++  }).catch(async(err) => {
+     // console.log('err', err.message)
+     if (window.lx.isPlayedStop ||
+       diffCurrentMusicInfo(musicInfo) ||
+@@ -119,8 +219,39 @@ const getMusicPlayUrl = async(musicInfo: LX.Music.MusicInfo | LX.Download.ListIt
+ 
+     if (err.message == requestMsg.tooManyRequests) return delayRetry(musicInfo, isRefresh)
+ 
+-    if (!isRetryed) return getMusicPlayUrl(musicInfo, isRefresh, true)
++    // 开启自动换源且当前是自定义源时，跳过对同一源的再次重试，直接进入换源/放弃流程（更快）
++    if (!isRetryed && !(appSetting['player.autoSwitchUserApiOnError'] && isUserApiId(apiSource.value))) {
++      return getMusicPlayUrl(musicInfo, isRefresh, true, triedApiSources, originApiId)
++    }
+ 
++    // 当前源彻底取不到链接：按列表顺序换下一个自定义源后重试（可在播放设置里关闭）
++    if (appSetting['player.autoSwitchUserApiOnError']) {
++      setAllStatus(window.i18n.t('toggle_source_try'))
++      // 先并行预探前 N 个候选源，命中则直接使用（省去逐个重载等待）
++      const parallel = await tryParallelSwitchForSong(musicInfo)
++      if (parallel.url) {
++        if (window.lx.isPlayedStop || diffCurrentMusicInfo(musicInfo)) return null
++        return parallel.url
++      }
++      // 并行已试过候选源仍无可用（或本首已试过）：不再逐源死磕，直接放弃以尽快触发“跳到下一首”
++      if (!parallel.mayTrySequential) {
++        err.__giveUp = true
++        throw err
++      }
++      const origin = originApiId || apiSource.value || ''
++      if (await switchToNextUserApi(triedApiSources, musicInfo.id)) {
++        if (window.lx.isPlayedStop || diffCurrentMusicInfo(musicInfo)) return null
++        return getMusicPlayUrl(musicInfo, true, false, triedApiSources, origin)
++      }
++      // 所有源都失败：恢复到原来源，避免默认停留在一个同样失效的源
++      if (isUserApiId(origin) && apiSource.value !== origin) {
++        try {
++          await setUserApi(origin)
++        } catch (e) {
++          console.log(e)
++        }
++      }
++    }
+     throw err
+   })
+ }
+@@ -135,6 +266,12 @@ export const setMusicUrl = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
+     setResource(url)
+   }).catch((err: any) => {
+     console.log(err)
++    if (err?.__giveUp) {
++      // 所有可用源都取不到：不再反复重试（避免长时间卡“获取链接中”），直接按错误处理→定时跳歌
++      setAllStatus(window.i18n.t('player__error'))
++      if (appSetting['player.autoSkipOnError']) addDelayNextTimeout()
++      return
++    }
+     setAllStatus(err.message)
+     window.app_event.error()
+     if (appSetting['player.autoSkipOnError']) addDelayNextTimeout()
+diff --git a/src/renderer/core/useApp/useInitUserApi.ts b/src/renderer/core/useApp/useInitUserApi.ts
+index 4042667..e114c95 100644
+--- a/src/renderer/core/useApp/useInitUserApi.ts
++++ b/src/renderer/core/useApp/useInitUserApi.ts
+@@ -1,6 +1,6 @@
+ import { onBeforeUnmount, watch } from '@common/utils/vueTools'
+ import { useI18n } from '@renderer/plugins/i18n'
+-import { onUserApiStatus, getUserApiList, sendUserApiRequest as sendUserApiRequestRemote, userApiRequestCancel, onShowUserApiUpdateAlert } from '@renderer/utils/ipc'
++import { onUserApiStatus, getUserApiList, sendUserApiRequest as sendUserApiRequestRemote, userApiRequestCancel, onShowUserApiUpdateAlert, warmProbeWindows } from '@renderer/utils/ipc'
+ import { openUrl } from '@common/utils/electron'
+ import { qualityList, userApi } from '@renderer/store'
+ import { appSetting } from '@renderer/store/setting'
+@@ -180,6 +180,10 @@ export default () => {
+       //   if (api) apiSource.value = api.id
+       // }
+       userApi.list = list
++      // 当前使用自定义源时，后台预热前几个源窗口，加速首次自动换源
++      if (/^user_api/.test(appSetting['common.apiSource'] || '')) {
++        void warmProbeWindows(list.slice(0, 4).map(api => api.id))
++      }
+     }).catch(err => {
+       console.log(err)
+     })
+diff --git a/src/renderer/core/useApp/usePlayer/usePlayEvent.ts b/src/renderer/core/useApp/usePlayer/usePlayEvent.ts
+index 5401f45..f1d5b6a 100644
+--- a/src/renderer/core/useApp/usePlayer/usePlayEvent.ts
++++ b/src/renderer/core/useApp/usePlayer/usePlayEvent.ts
+@@ -1,8 +1,10 @@
+ import { onBeforeUnmount } from '@common/utils/vueTools'
+ import { useI18n } from '@renderer/plugins/i18n'
+ import { musicInfo, playMusicInfo } from '@renderer/store/player/state'
+-import { setStop, isEmpty } from '@renderer/plugins/player'
+-import { playNext, setMusicUrl } from '@renderer/core/player'
++import { apiSource } from '@renderer/store'
++import { setSongSource } from '@renderer/core/userApiSourceCache'
++import { setStop, isEmpty, getDuration } from '@renderer/plugins/player'
++import { playNext, setMusicUrl, trySwitchNextUserApiOnAudioError, resetAudioErrorTriedApiSources, tryParallelSwitchForSong } from '@renderer/core/player'
+ import { setAllStatus } from '@renderer/store/player/action'
+ import { appSetting } from '@renderer/store/setting'
+ 
+@@ -10,6 +12,15 @@ export default () => {
+   const t = useI18n()
+   let retryNum = 0
+   let prevTimeoutId: string | null = null
++  let switchingSource = false
++  let handlingDurationMismatch = false
++
++  const parseIntervalSec = (interval?: string | null): number => {
++    if (typeof interval !== 'string' || !interval) return 0
++    const parts = interval.split(':').map(Number)
++    if (parts.some(n => !Number.isFinite(n))) return 0
++    return parts.reduce((acc, n) => acc * 60 + n, 0)
++  }
+ 
+   let loadingTimeout: NodeJS.Timeout | null = null
+   let delayNextTimeout: NodeJS.Timeout | null = null
+@@ -63,13 +74,63 @@ export default () => {
+     setAllStatus(t('player__loading'))
+   }
+ 
++  // 时长明显不符（多为试听片段/数字专辑/无版权）：继续换其它源找完整版，全部不行才跳过
++  const handleDurationMismatch = async(info: LX.Music.MusicInfo) => {
++    if (handlingDurationMismatch) return
++    if (!appSetting['player.autoSwitchUserApiOnError']) return
++    handlingDurationMismatch = true
++    try {
++      console.warn('duration mismatch, try switch source', (info as any).name)
++      setAllStatus(t('toggle_source_try'))
++      const parallel = await tryParallelSwitchForSong(info).catch(() => ({ url: null, mayTrySequential: true }))
++      if (parallel.url) {
++        setMusicUrl(info, true)
++        return
++      }
++      if (await trySwitchNextUserApiOnAudioError(info.id)) {
++        setMusicUrl(info, true)
++        return
++      }
++      // 所有源都试过仍拿不到完整版 → 跳过
++      if (appSetting['player.autoSkipOnError']) void playNext(true)
++    } finally {
++      // eslint-disable-next-line require-atomic-updates
++      handlingDurationMismatch = false
++    }
++  }
++
++  const checkDurationMismatch = () => {
++    const info = playMusicInfo.musicInfo
++    if (!info || !('source' in info)) return
++    const expected = parseIntervalSec((info as any).interval || (musicInfo as any).interval)
++    if (!expected) return
++    const actual = getDuration()
++    if (!Number.isFinite(actual) || actual <= 0) return
++    const shortBy = expected - actual
++    if (shortBy >= 4 && shortBy / expected >= 0.25) {
++      setStop() // 立即静音/停止，避免听到试听/提示音
++      void handleDurationMismatch(info)
++    }
++  }
++  // 有的流 loadeddata 时 duration 未定，延迟再复检
++  const scheduleDurationRecheck = () => {
++    setTimeout(checkDurationMismatch, 400)
++    setTimeout(checkDurationMismatch, 1200)
++  }
++
+   const handleLoadeddata = () => {
+     setAllStatus(t('player__loading'))
++    checkDurationMismatch()
++    scheduleDurationRecheck()
+   }
+ 
+   const handlePlaying = () => {
+     setAllStatus('')
+     clearLoadingTimeout()
++    checkDurationMismatch()
++    // 记录这首歌在该自定义源下能正常播放，供以后换源时优先选中
++    const id = apiSource.value
++    if (musicInfo.id && id && /^user_api/.test(id)) setSongSource(musicInfo.id, id)
+   }
+ 
+   const handleEmpied = () => {
+@@ -81,12 +142,14 @@ export default () => {
+     setAllStatus(t('player__buffering'))
+   }
+ 
+-  const handleError = (errCode?: number) => {
++  const handleError = async(errCode?: number) => {
+     if (!musicInfo.id) return
+     clearLoadingTimeout()
+     if (window.lx.isPlayedStop) return
+     if (!isEmpty()) setStop()
+-    if (playMusicInfo.musicInfo && errCode !== 1 && retryNum < 2) { // 若音频URL无效则尝试刷新2次URL
++    // 开启自动换源且当前是自定义源时，跳过“对同一源刷新2次”（往往还是坏链接），直接进并行换源
++    const canSwitchSource = appSetting['player.autoSwitchUserApiOnError'] && /^user_api/.test(apiSource.value || '')
++    if (playMusicInfo.musicInfo && errCode !== 1 && retryNum < 2 && !canSwitchSource) { // 若音频URL无效则尝试刷新2次URL
+       // console.log(this.retryNum)
+       retryNum++
+       setMusicUrl(playMusicInfo.musicInfo, true)
+@@ -94,6 +157,28 @@ export default () => {
+       return
+     }
+ 
++    // 刷新同一源仍出错：尝试自动切换到下一个自定义源并重试（每个源同一首内只试一次）
++    if (appSetting['player.autoSwitchUserApiOnError'] && !switchingSource && playMusicInfo.musicInfo && errCode !== 1) {
++      switchingSource = true
++      try {
++        const parallel = await tryParallelSwitchForSong(playMusicInfo.musicInfo).catch(() => ({ url: null, mayTrySequential: true }))
++        if (parallel.url) {
++          setMusicUrl(playMusicInfo.musicInfo, true)
++          setAllStatus(t('toggle_source_try'))
++          return
++        }
++        // 并行已试过仍无可用：不要再逐源死磕，交给“加载出错→自动跳过下一首”
++        if (parallel.mayTrySequential && await trySwitchNextUserApiOnAudioError(playMusicInfo.musicInfo.id)) {
++          setMusicUrl(playMusicInfo.musicInfo, true)
++          setAllStatus(t('toggle_source_try'))
++          return
++        }
++      } finally {
++        // eslint-disable-next-line require-atomic-updates
++        switchingSource = false
++      }
++    }
++
+     if (appSetting['player.autoSkipOnError']) {
+       if (document.hidden) {
+         console.warn('error skip to next')
+@@ -108,6 +193,9 @@ export default () => {
+   const handleSetPlayInfo = () => {
+     retryNum = 0
+     prevTimeoutId = null
++    switchingSource = false
++    handlingDurationMismatch = false
++    resetAudioErrorTriedApiSources()
+     clearDelayNextTimeout()
+     clearLoadingTimeout()
+   }
+@@ -118,7 +206,10 @@ export default () => {
+   // }
+ 
+ 
++  const handleLoadedmetadata = () => { checkDurationMismatch() }
++
+   window.app_event.on('playerLoadstart', handleLoadstart)
++  window.app_event.on('playerLoadedmetadata', handleLoadedmetadata)
+   window.app_event.on('playerLoadeddata', handleLoadeddata)
+   window.app_event.on('playerPlaying', handlePlaying)
+   window.app_event.on('playerWaiting', handleWating)
+@@ -128,6 +219,7 @@ export default () => {
+ 
+   onBeforeUnmount(() => {
+     window.app_event.off('playerLoadstart', handleLoadstart)
++    window.app_event.off('playerLoadedmetadata', handleLoadedmetadata)
+     window.app_event.off('playerLoadeddata', handleLoadeddata)
+     window.app_event.off('playerPlaying', handlePlaying)
+     window.app_event.off('playerWaiting', handleWating)
+diff --git a/src/renderer/core/useApp/usePlayer/usePlayerEvent.ts b/src/renderer/core/useApp/usePlayer/usePlayerEvent.ts
+index e223570..cab4cf6 100644
+--- a/src/renderer/core/useApp/usePlayer/usePlayerEvent.ts
++++ b/src/renderer/core/useApp/usePlayer/usePlayerEvent.ts
+@@ -5,6 +5,7 @@ import {
+   onEnded,
+   onError,
+   onLoadeddata,
++  onLoadedmetadata,
+   onLoadstart,
+   onCanplay,
+   onEmptied,
+@@ -39,6 +40,10 @@ export default () => {
+     console.log('onLoadeddata')
+     window.app_event.playerLoadeddata()
+   })
++  const rOnLoadedmetadata = onLoadedmetadata(() => {
++    console.log('onLoadedmetadata')
++    window.app_event.playerLoadedmetadata()
++  })
+   const rOnLoadstart = onLoadstart(() => {
+     console.log('onLoadstart')
+     window.app_event.playerLoadstart()
+@@ -65,6 +70,7 @@ export default () => {
+     rOnEnded()
+     rOnError()
+     rOnLoadeddata()
++    rOnLoadedmetadata()
+     rOnLoadstart()
+     rOnCanplay()
+     rOnEmptied()
+diff --git a/src/renderer/core/useApp/usePlayer/usePreloadNextMusic.ts b/src/renderer/core/useApp/usePlayer/usePreloadNextMusic.ts
+index 650a865..6aea505 100644
+--- a/src/renderer/core/useApp/usePlayer/usePreloadNextMusic.ts
++++ b/src/renderer/core/useApp/usePlayer/usePreloadNextMusic.ts
+@@ -46,6 +46,7 @@ const checkMusicUrl = async(url: string): Promise<boolean> => {
+   })
+ }
+ 
++let earlyPreloaded = false
+ const preloadMusicInfo = {
+   isLoading: false,
+   preProgress: 0,
+@@ -56,15 +57,17 @@ const resetPreloadInfo = () => {
+   preloadMusicInfo.info = null
+   preloadMusicInfo.isLoading = false
+ }
+-const preloadNextMusicUrl = async(curTime: number) => {
+-  if (preloadMusicInfo.isLoading || curTime - preloadMusicInfo.preProgress < 3) return
++const preloadNextMusicUrl = async(curTime: number, early = false) => {
++  if (preloadMusicInfo.isLoading) return
++  if (!early && curTime - preloadMusicInfo.preProgress < 3) return
+   preloadMusicInfo.isLoading = true
+-  console.log('preload next music url')
++  console.log('preload next music url', early ? '(early)' : '')
+   const info = await getNextPlayMusicInfo()
+   if (info) {
+-    preloadMusicInfo.info = info
++    // 提前预取只取链接暖缓存（命中后点击下一首即秒出）；临近结束再做可播性校验
++    if (!early) preloadMusicInfo.info = info
+     const url = await getMusicUrl({ musicInfo: info.musicInfo }).catch(() => '')
+-    if (url) {
++    if (url && !early) {
+       console.log('preload url', url)
+       const result = await checkMusicUrl(url)
+       if (!result) {
+@@ -84,6 +87,7 @@ export default () => {
+   }
+ 
+   const handleSetPlayInfo = () => {
++    earlyPreloaded = false
+     resetPreloadInfo()
+   }
+ 
+@@ -100,7 +104,13 @@ export default () => {
+   const rOnTimeupdate = onTimeupdate(() => {
+     const time = getCurrentTime()
+     const duration = playProgress.maxPlayTime
+-    if (duration > 10 && duration - time < 10 && !preloadMusicInfo.info) {
++    if (duration <= 10) return
++    // 播放约 2 秒后提前预取下一首链接，让手动切歌命中缓存、无需现取
++    if (!earlyPreloaded && time > 2) {
++      earlyPreloaded = true
++      void preloadNextMusicUrl(time, true)
++    }
++    if (duration - time < 10 && !preloadMusicInfo.info) {
+       void preloadNextMusicUrl(time)
+     }
+   })
+diff --git a/src/renderer/core/userApiSourceCache.ts b/src/renderer/core/userApiSourceCache.ts
+new file mode 100644
+index 0000000..7136d3e
+--- /dev/null
++++ b/src/renderer/core/userApiSourceCache.ts
+@@ -0,0 +1,26 @@
++// 会话级缓存：最近一次音源测速结果 + 每首歌成功播放过的自定义源
++// 供播放出错自动换源时挑选“最可能可用”的源，减少逐源重载的等待。
++
++let probeRanking: LX.UserApi.UserApiProbeResult[] = []
++const songSourceCache = new Map<string, string>()
++
++export const setProbeRanking = (results: LX.UserApi.UserApiProbeResult[]) => {
++  probeRanking = Array.isArray(results) ? results : []
++}
++export const getProbeRanking = (): LX.UserApi.UserApiProbeResult[] => probeRanking
++
++export const setSongSource = (songId: string, apiId: string) => {
++  if (songId && apiId) songSourceCache.set(songId, apiId)
++}
++export const getSongSource = (songId?: string): string | undefined => songId ? songSourceCache.get(songId) : undefined
++
++// 记录“这首歌是否已经并行预探过”，同一首歌的后续重试不再重复开窗，避免卡顿放大
++let parallelTriedSongId = ''
++let parallelTriedAt = 0
++export const markParallelTried = (songId?: string) => {
++  if (!songId) return
++  parallelTriedSongId = songId
++  parallelTriedAt = Date.now()
++}
++export const wasParallelTried = (songId?: string, withinMs = 60000): boolean =>
++  !!songId && songId === parallelTriedSongId && Date.now() - parallelTriedAt < withinMs
+diff --git a/src/renderer/event/appEvent.ts b/src/renderer/event/appEvent.ts
+index c7a7e21..5826735 100644
+--- a/src/renderer/event/appEvent.ts
++++ b/src/renderer/event/appEvent.ts
+@@ -92,6 +92,10 @@ export class AppEvent extends Event {
+     this.emit('playerPause')
+   }
+ 
++  playerLoadedmetadata() {
++    this.emit('playerLoadedmetadata')
++  }
++
+   playerStop() {
+     this.emit('playerStop')
+   }
+diff --git a/src/renderer/plugins/player/index.ts b/src/renderer/plugins/player/index.ts
+index 058999c..da84e4d 100644
+--- a/src/renderer/plugins/player/index.ts
++++ b/src/renderer/plugins/player/index.ts
+@@ -514,6 +514,15 @@ export const onLoadeddata = (callback: Noop) => {
+   }
+ }
+ 
++export const onLoadedmetadata = (callback: Noop) => {
++  if (!audio) throw new Error('audio not defined')
++
++  audio.addEventListener('loadedmetadata', callback)
++  return () => {
++    audio?.removeEventListener('loadedmetadata', callback)
++  }
++}
++
+ export const onLoadstart = (callback: Noop) => {
+   if (!audio) throw new Error('audio not defined')
+ 
+diff --git a/src/renderer/utils/ipc.ts b/src/renderer/utils/ipc.ts
+index ca4b8a7..c6a368f 100644
+--- a/src/renderer/utils/ipc.ts
++++ b/src/renderer/utils/ipc.ts
+@@ -130,6 +130,18 @@ export const setUserApi = async(source: LX.UserApi.UserApiSetApiParams): Promise
+ export const removeUserApi = async(ids: string[]) => {
+   return rendererInvoke<string[], LX.UserApi.UserApiInfo[]>(WIN_MAIN_RENDERER_EVENT_NAME.remove_user_api, ids)
+ }
++export const probeUserApis = async(): Promise<LX.UserApi.UserApiProbeResult[]> => {
++  return rendererInvoke<LX.UserApi.UserApiProbeResult[]>(WIN_MAIN_RENDERER_EVENT_NAME.probe_user_api)
++}
++export const tryUserApiSources = async(apiIds: string[], data: any): Promise<{ apiId: string, url: string } | null> => {
++  return rendererInvoke<{ apiIds: string[], data: any }, { apiId: string, url: string } | null>(WIN_MAIN_RENDERER_EVENT_NAME.try_user_api_sources, { apiIds, data })
++}
++export const warmProbeWindows = async(apiIds: string[]): Promise<void> => {
++  return rendererInvoke<string[]>(WIN_MAIN_RENDERER_EVENT_NAME.warm_user_api_probe, apiIds)
++}
++export const probeSourcesReal = async(apiIds: string[], requests: any[]): Promise<Array<{ apiId: string, ok: boolean, ms: number | null }>> => {
++  return rendererInvoke<{ apiIds: string[], requests: any[] }, Array<{ apiId: string, ok: boolean, ms: number | null }>>(WIN_MAIN_RENDERER_EVENT_NAME.probe_user_api_real, { apiIds, requests })
++}
+ export const onShowUserApiUpdateAlert = (listener: LX.IpcRendererEventListenerParams<LX.UserApi.UserApiUpdateInfo>): RemoveListener => {
+   rendererOn(WIN_MAIN_RENDERER_EVENT_NAME.user_api_show_update_alert, listener)
+   return () => {
 diff --git a/src/renderer/views/Download/index.vue b/src/renderer/views/Download/index.vue
 index b8f1a53..87015ca 100644
 --- a/src/renderer/views/Download/index.vue
@@ -971,22 +2478,123 @@ index f5baca6..435ca54 100644
 +    handleSelectAllData,
    }
  }
+diff --git a/src/renderer/views/Setting/components/SettingBasic.vue b/src/renderer/views/Setting/components/SettingBasic.vue
+index 3a0552a..3224366 100644
+--- a/src/renderer/views/Setting/components/SettingBasic.vue
++++ b/src/renderer/views/Setting/components/SettingBasic.vue
+@@ -36,7 +36,9 @@ dd
+         svg-icon(name="angle-right-solid" :class="$style.activeIcon")
+ 
+ dd
+-  h3#basic_source {{ $t('setting__basic_source') }}
++  h3#basic_source(:class="$style.sourceTitle")
++    span {{ $t('setting__basic_source') }}
++    button(:class="$style.probeBtn" type="button" @click="isShowProbeModal = true") {{ $t('user_api__btn_test_latency') }}
+   div
+     .gap-top(v-for="item in apiSources" :key="item.id")
+       base-checkbox(
+@@ -109,6 +111,7 @@ ThemeSelectorModal(v-model="isShowThemeSelectorModal")
+ ThemeEditModal(v-model="isShowThemeEditModal" :theme-id="editThemeId" @submit="handleRefreshTheme")
+ play-timeout-modal(v-model="isShowPlayTimeoutModal")
+ user-api-modal(v-model="isShowUserApiModal")
++user-api-probe-modal(v-model:show="isShowProbeModal" @select="handleProbeSelect")
+ </template>
+ 
+ <script>
+@@ -124,7 +127,9 @@ import ThemeSelectorModal from './ThemeSelectorModal.vue'
+ import ThemeEditModal from './ThemeEditModal/index.vue'
+ import PlayTimeoutModal from './PlayTimeoutModal.vue'
+ import UserApiModal from './UserApiModal.vue'
++import UserApiProbeModal from './UserApiProbeModal.vue'
+ import { appSetting, updateSetting } from '@renderer/store/setting'
++import { setUserApi } from '@renderer/core/apiSource'
+ import { getThemes, applyTheme, findTheme, buildBgUrl } from '@renderer/store/utils'
+ 
+ export default {
+@@ -134,6 +139,7 @@ export default {
+     ThemeEditModal,
+     PlayTimeoutModal,
+     UserApiModal,
++    UserApiProbeModal,
+   },
+   setup() {
+     const t = useI18n()
+@@ -250,6 +256,8 @@ export default {
+     const { timeLabel } = useTimeout()
+ 
+     const isShowUserApiModal = ref(false)
++    const isShowProbeModal = ref(false)
++    const handleProbeSelect = (id) => { void setUserApi(id) }
+     const getApiStatus = () => {
+       let status
+       if (userApi.status) status = t('setting__basic_source_status_success')
+@@ -344,6 +352,8 @@ export default {
+       timeLabel,
+       apiSources,
+       isShowUserApiModal,
++      isShowProbeModal,
++      handleProbeSelect,
+       windowSizeList,
+       langList,
+       sourceNameTypes,
+@@ -552,4 +562,27 @@ export default {
+   }
+ }
+ 
++.sourceTitle {
++  display: flex;
++  align-items: center;
++  gap: 10px;
++}
++.probeBtn {
++  flex: none;
++  font-size: 12px;
++  line-height: 1;
++  height: 20px;
++  padding: 0 8px;
++  border: 1px solid var(--color-primary);
++  border-radius: 10px;
++  color: var(--color-primary);
++  background: transparent;
++  cursor: pointer;
++  transition: .2s ease;
++  transition-property: background-color, opacity;
++  &:hover {
++    background-color: var(--color-primary-background-hover);
++  }
++}
++
+ </style>
+diff --git a/src/renderer/views/Setting/components/SettingPlay.vue b/src/renderer/views/Setting/components/SettingPlay.vue
+index 92b3caa..3555fd7 100644
+--- a/src/renderer/views/Setting/components/SettingPlay.vue
++++ b/src/renderer/views/Setting/components/SettingPlay.vue
+@@ -18,6 +18,8 @@ dd
+     base-checkbox(id="setting_player_awap_lyric_trans_roma" :model-value="appSetting['player.isSwapLyricTranslationAndRoma']" :label="$t('setting__player_swap_lyric_trans_roma')" @update:model-value="updateSetting({'player.isSwapLyricTranslationAndRoma': $event})")
+   .gap-top
+     base-checkbox(id="setting_player_auto_skip_on_error" :model-value="appSetting['player.autoSkipOnError']" :label="$t('setting__play_auto_skip_on_error')" @update:model-value="updateSetting({'player.autoSkipOnError': $event})")
++  .gap-top
++    base-checkbox(id="setting_player_auto_switch_user_api_on_error" :model-value="appSetting['player.autoSwitchUserApiOnError']" :label="$t('setting__play_auto_switch_user_api_on_error')" @update:model-value="updateSetting({'player.autoSwitchUserApiOnError': $event})")
+   .gap-top
+     base-checkbox(id="setting_player_lyric_s2t" :model-value="appSetting['player.isS2t']" :label="$t('setting__play_lyric_s2t')" @update:model-value="updateSetting({'player.isS2t': $event})")
+   .gap-top
 diff --git a/src/renderer/views/Setting/components/UserApiModal.vue b/src/renderer/views/Setting/components/UserApiModal.vue
-index d1f9141..5ee9891 100644
+index d1f9141..2af1c8a 100644
 --- a/src/renderer/views/Setting/components/UserApiModal.vue
 +++ b/src/renderer/views/Setting/components/UserApiModal.vue
-@@ -1,7 +1,9 @@
+@@ -1,7 +1,10 @@
  <template lang="pug">
  material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose")
    main.scroll(:class="$style.main")
 -    h2 {{ $t('user_api__title') }}
 +    div(:class="$style.header")
 +      h2 {{ $t('user_api__title') }}
++      base-btn(v-if="apiList.length" min outline :class="$style.probeBtn" @click="isShowProbeModal = true") {{ $t('user_api__btn_test_latency') }}
 +      base-btn(v-if="apiList.length" min outline :class="$style.removeAllBtn" @click="handleRemoveAll") {{ $t('user_api__btn_remove_all') }}
      ul.scroll(v-if="apiList.length" :class="$style.content")
        li(v-for="(api, index) in apiList" :key="api.id" :class="[$style.listItem, {[$style.active]: appSetting['common.apiSource'] == api.id}]")
          div(:class="$style.listLeft")
-@@ -23,9 +25,15 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
+@@ -23,10 +26,17 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
          span.hover.underline(aria-label="https://lxmusic.toside.cn/desktop/custom-source" @click="handleOpenUrl('https://lyswhut.github.io/lx-music-doc/desktop/custom-source')") FAQ
        p {{ $t('user_api__note') }}
      div(:class="$style.footer")
@@ -1000,26 +2608,34 @@ index d1f9141..5ee9891 100644
 +        p {{ $t('user_api__importing') }}
 +    UserApiOneClickImportModal(v-model:show="isShowOneClickImportModal" @import-start="importLoading = true" @import-done="importLoading = false")
      UserApiOnlineImportModal(v-model:show="isShowOnlineImportModal" @import="importUserApi")
++    UserApiProbeModal(v-model:show="isShowProbeModal" @select="handleProbeSelect")
  </template>
  
-@@ -39,10 +47,12 @@ import { appSetting, updateSetting } from '@renderer/store/setting'
+ <script>
+@@ -38,12 +48,17 @@ import { userApi } from '@renderer/store'
+ import { appSetting, updateSetting } from '@renderer/store/setting'
  import { computed, ref } from '@common/utils/vueTools'
  import { dialog } from '@renderer/plugins/Dialog'
++import { setUserApi } from '@renderer/core/apiSource'
  
 +import UserApiOneClickImportModal from './UserApiOneClickImportModal.vue'
  import UserApiOnlineImportModal from './UserApiOnlineImportModal.vue'
++import UserApiProbeModal from './UserApiProbeModal.vue'
  
  export default {
    components: {
 +    UserApiOneClickImportModal,
      UserApiOnlineImportModal,
++    UserApiProbeModal,
    },
    props: {
-@@ -54,13 +64,17 @@ export default {
+     modelValue: {
+@@ -54,13 +69,19 @@ export default {
    emits: ['update:modelValue'],
    setup() {
      const isShowOnlineImportModal = ref(false)
 +    const isShowOneClickImportModal = ref(false)
++    const isShowProbeModal = ref(false)
 +    const importLoading = ref(false)
      const apiList = computed(() => userApi.list)
  
@@ -1030,10 +2646,21 @@ index d1f9141..5ee9891 100644
 +      importLoading,
        isShowOnlineImportModal,
 +      isShowOneClickImportModal,
++      isShowProbeModal,
      }
    },
    methods: {
-@@ -106,6 +120,16 @@ export default {
+@@ -71,6 +92,9 @@ export default {
+         void dialog(this.$t('user_api_import__failed', { message: err.message }))
+       })
+     },
++    handleProbeSelect(id) {
++      void setUserApi(id)
++    },
+     handleImport() {
+       if (this.userApi.list.length > 20) {
+         this.$dialog({
+@@ -106,6 +130,16 @@ export default {
        }
        userApi.list = await removeUserApi([api.id])
      },
@@ -1050,7 +2677,7 @@ index d1f9141..5ee9891 100644
      handleClose() {
        this.$emit('update:modelValue', false)
      },
-@@ -130,6 +154,7 @@ export default {
+@@ -130,6 +164,7 @@ export default {
    display: flex;
    flex-flow: column nowrap;
    min-height: 0;
@@ -1058,7 +2685,7 @@ index d1f9141..5ee9891 100644
    // max-height: 100%;
    // overflow: hidden;
    h2 {
-@@ -157,6 +182,52 @@ export default {
+@@ -157,6 +192,58 @@ export default {
    margin-top: 15px;
    padding: 0 7px;
  }
@@ -1075,6 +2702,12 @@ index d1f9141..5ee9891 100644
 +  top: 50%;
 +  transform: translateY(-50%);
 +  color: #f56c6c !important;
++}
++.probeBtn {
++  position: absolute;
++  left: 0;
++  top: 50%;
++  transform: translateY(-50%);
 +}
 +.importMask {
 +  position: absolute;
@@ -1113,10 +2746,10 @@ index d1f9141..5ee9891 100644
    flex-flow: row nowrap;
 diff --git a/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
 new file mode 100644
-index 0000000..85746e8
+index 0000000..988b500
 --- /dev/null
 +++ b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
-@@ -0,0 +1,269 @@
+@@ -0,0 +1,341 @@
 +<template>
 +  <material-modal :show="show" teleport="#view" @close="handleClose">
 +    <main :class="$style.main">
@@ -1165,8 +2798,11 @@ index 0000000..85746e8
 +<script>
 +import { dialog } from '@renderer/plugins/Dialog'
 +import { httpFetch } from '@renderer/utils/request'
-+import { importUserApi } from '@renderer/utils/ipc'
++import { importUserApi, probeUserApis, removeUserApi, warmProbeWindows } from '@renderer/utils/ipc'
 +import { userApi } from '@renderer/store'
++import { appSetting } from '@renderer/store/setting'
++import { setUserApi } from '@renderer/core/apiSource'
++import { setProbeRanking } from '@renderer/core/userApiSourceCache'
 +
 +const RAW_BASE = 'https://raw.githubusercontent.com/pdone/lx-music-source'
 +const PROXY_BASE = 'https://ghproxy.net/raw.githubusercontent.com/pdone/lx-music-source'
@@ -1257,34 +2893,103 @@ index 0000000..85746e8
 +    },
 +    async handleImport() {
 +      if (!this.selected.length) return
-+      if (userApi.list.length + this.selected.length > 20) {
-+        void dialog(this.$t('user_api__max_tip'))
-+        return
-+      }
 +      this.disabled = true
 +      this.btnText = this.$t('user_api_import_online__input_loading')
 +      const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
 +      this.$emit('import-start')
 +      this.handleClose()
-+      let ok = 0
-+      let finalList
++      let added = 0
++      let updated = 0
++      let skipped = 0
++      let reachLimit = false
++      let finalList = userApi.list
 +      const fails = []
 +      for (const key of this.selected) {
 +        try {
 +          const script = await this.fetchText(`${base}/${key}/latest.js`)
-+          const { apiList } = await importUserApi(script)
++          const { apiList, updated: isUpdate } = await importUserApi(script)
 +          finalList = apiList
-+          ok++
++          isUpdate ? updated++ : added++
 +        } catch (err) {
-+          fails.push(`${key}: ${err.message}`)
++          const message = err.message || ''
++          // 后端按「作者+名字+version」去重：同版本跳过；同名同作者的新版本覆盖更新；达到 20 上限则停止
++          // shortcut: 靠后端中文错误文案判定类型（IPC 会丢弃自定义错误码），改文案需同步这里
++          if (message.includes('脚本内容与已有的源')) {
++            skipped++
++            continue
++          }
++          if (message.includes('最多只能同时存在 20 个源')) {
++            reachLimit = true
++            break
++          }
++          fails.push(`${key}: ${message}`)
 +        }
 +      }
-+      if (finalList) userApi.list = finalList
++      userApi.list = finalList
 +      this.$emit('import-done')
-+      if (fails.length) {
-+        void dialog(this.$t('user_api_one_click__import_result', { ok, fail: fails.length, detail: fails.join('\n') }))
++      if (reachLimit) {
++        void dialog(this.$t('user_api__max_tip'))
++      } else if (fails.length) {
++        void dialog(this.$t('user_api_one_click__import_result', { ok: added + updated, fail: fails.length, detail: fails.join('\n') }))
++      } else if (updated || skipped) {
++        void dialog(this.$t('user_api_one_click__import_summary', { add: added, update: updated, skip: skipped }))
 +      } else {
-+        void dialog(this.$t('user_api_one_click__import_success', { ok }))
++        void dialog(this.$t('user_api_one_click__import_success', { ok: added }))
++      }
++      if (userApi.list.length) void this.autoProbeAndSelect()
++    },
++    async autoProbeAndSelect() {
++      let results
++      try {
++        results = await probeUserApis()
++        setProbeRanking(results)
++        const warmIds = results.filter(r => r.ok > 0).slice(0, 4).map(r => r.id)
++        if (warmIds.length) void warmProbeWindows(warmIds)
++      } catch (err) {
++        void dialog(this.$t('user_api_probe__failed', { message: err.message }))
++        return
++      }
++      const available = results.filter(r => r.ok > 0)
++      if (!available.length) {
++        // 全部探测失败，可能只是本机网络问题，此时不提供“清理失效源”，避免误删
++        void dialog(this.$t('user_api_probe__none'))
++        return
++      }
++      const best = available[0]
++      const current = appSetting['common.apiSource'] || ''
++      const cur = results.find(r => r.id === current)
++      // 仅当前源未设置，或当前用户源探测为失效(无一次成功)时才切换；内置源尊重用户选择
++      const currentInvalid = !current || (/^user_api/.test(current) && (!cur || cur.ok === 0))
++      const rate = Math.round(best.okRate * 100)
++      const ms = best.avgMs ?? best.bestMs ?? '-'
++      if (currentInvalid && best.id !== current) {
++        try {
++          await setUserApi(best.id)
++        } catch (err) {
++          console.log(err)
++        }
++        void dialog(this.$t('user_api_probe__done_switch', { name: best.name, rate, ms }))
++      } else {
++        void dialog(this.$t('user_api_probe__done_keep', { name: best.name, rate, ms }))
++      }
++      // 有可用源作参照（说明网络正常），再询问是否移除确认失效的已安装源
++      await this.confirmRemoveInvalid(results)
++    },
++    async confirmRemoveInvalid(results) {
++      const active = appSetting['common.apiSource'] || ''
++      // 失效 = 提取到上游主机但全部探测失败；跳过当前正在使用的源；hosts=0(无法判定)不处理
++      const invalid = results.filter(item => item.status === '失效' && item.hosts > 0 && item.id !== active)
++      if (!invalid.length) return
++      const isConfirm = await dialog.confirm(this.$t('user_api_one_click__remove_invalid_confirm', {
++        count: invalid.length,
++        names: invalid.map(item => item.name).join('、'),
++      }))
++      if (!isConfirm) return
++      try {
++        userApi.list = await removeUserApi(invalid.map(item => item.id))
++        void dialog(this.$t('user_api_one_click__remove_invalid_done', { count: invalid.length }))
++      } catch (err) {
++        console.log(err)
 +      }
 +    },
 +  },
@@ -1381,6 +3086,327 @@ index 0000000..85746e8
 +}
 +.btn {
 +  min-width: 70px;
++  + .btn {
++    margin-left: 10px;
++  }
++}
++</style>
+diff --git a/src/renderer/views/Setting/components/UserApiProbeModal.vue b/src/renderer/views/Setting/components/UserApiProbeModal.vue
+new file mode 100644
+index 0000000..959f2cf
+--- /dev/null
++++ b/src/renderer/views/Setting/components/UserApiProbeModal.vue
+@@ -0,0 +1,315 @@
++<template>
++  <material-modal :show="show" teleport="#view" @close="handleClose">
++    <main :class="$style.main">
++      <h2>{{ $t('user_api_probe_modal__title') }}</h2>
++      <p :class="$style.tip">{{ $t('user_api_probe_modal__tip') }}</p>
++      <p v-if="realError" :class="$style.realNote">{{ realError }}</p>
++      <div :class="$style.content">
++        <div v-if="loading" :class="$style.empty">{{ $t('user_api_probe_modal__loading') }}</div>
++        <div v-else-if="error" :class="$style.empty">{{ error }}</div>
++        <div v-else-if="!list.length" :class="$style.empty">{{ $t('user_api_probe_modal__empty') }}</div>
++        <ul v-else :class="$style.list">
++          <li
++            v-for="(item, index) in list"
++            :key="item.id"
++            :class="[$style.item, { [$style.itemDisabled]: !isSelectable(item), [$style.itemActive]: selectedId === item.id }]"
++            @click="handleSelect(item)"
++          >
++            <div :class="$style.rowTop">
++              <span :class="$style.rank">{{ index + 1 }}</span>
++              <span :class="$style.name">{{ item.name }}</span>
++              <span :class="$style.check">{{ selectedId === item.id ? '●' : '' }}</span>
++            </div>
++            <div :class="$style.rowMeta">
++              <span>{{ $t('user_api_probe_modal__conn_label') }} <b :class="$style[statusCls(item.status)]">{{ item.status }}</b></span>
++              <span>{{ $t('user_api_probe_modal__hosts_label') }} {{ item.hosts }}</span>
++              <span>{{ $t('user_api_probe_modal__ok_rate_label') }} {{ pct(item.okRate) }}%</span>
++              <span>{{ $t('user_api_probe_modal__reach_rate_label') }} {{ pct(item.reachRate) }}%</span>
++              <span>{{ $t('user_api_probe_modal__avg_label') }} {{ item.avgMs != null ? `${item.avgMs}ms` : '—' }}</span>
++              <span>{{ $t('user_api_probe_modal__best_label') }} {{ item.bestMs != null ? `${item.bestMs}ms` : '—' }}</span>
++            </div>
++            <div :class="$style.rowReal">
++              <span :class="$style.realTag">{{ $t('user_api_probe_modal__real_label') }}</span>
++              <span v-if="item.realLive" :class="$style.realOk">{{ $t('user_api_probe_modal__real_live') }}</span>
++              <span v-else-if="realLoading && item.realOk == null" :class="$style.realTesting">{{ $t('user_api_probe_modal__real_testing') }}</span>
++              <span v-else-if="item.realOk === true" :class="$style.realOk">{{ $t('user_api_probe_modal__real_ok', { ms: item.realMs }) }}</span>
++              <span v-else-if="item.realOk === false" :class="$style.realBad">{{ $t('user_api_probe_modal__real_bad') }}</span>
++              <span v-else :class="$style.realTesting">—</span>
++            </div>
++          </li>
++        </ul>
++      </div>
++      <div :class="$style.footer">
++        <base-btn :class="$style.btn" @click="handleClose">{{ $t('btn_close') }}</base-btn>
++        <base-btn :class="$style.btn" :disabled="!selectedId" @click="handleConfirm">{{ $t('user_api_probe_modal__confirm') }}</base-btn>
++      </div>
++    </main>
++  </material-modal>
++</template>
++
++<script>
++import { probeUserApis, warmProbeWindows, probeSourcesReal } from '@renderer/utils/ipc'
++import { setProbeRanking } from '@renderer/core/userApiSourceCache'
++import { playMusicInfo, isPlay } from '@renderer/store/player/state'
++import { apiSource } from '@renderer/store'
++import { appSetting } from '@renderer/store/setting'
++import { getPlayQuality } from '@renderer/core/music/utils'
++
++const statusPriority = { 可用: 0, 异常: 1, 失效: 2 }
++
++export default {
++  props: {
++    show: {
++      type: Boolean,
++      default: false,
++    },
++  },
++  emits: ['update:show', 'select'],
++  data() {
++    return {
++      list: [],
++      selectedId: '',
++      loading: false,
++      error: '',
++      realLoading: false,
++      realError: '',
++    }
++  },
++  watch: {
++    show(value) {
++      if (value) void this.init()
++    },
++  },
++  methods: {
++    statusCls(status) {
++      return status === '可用' ? 'ok' : status === '异常' ? 'warn' : 'dead'
++    },
++    pct(rate) {
++      return Math.round((rate || 0) * 100)
++    },
++    isSelectable() {
++      // 测试结果只作参考：允许选择任意源（真实播放可能走了脚本内的其它平台/方式）
++      return true
++    },
++    async init() {
++      this.loading = true
++      this.error = ''
++      this.list = []
++      this.selectedId = ''
++      this.realLoading = false
++      this.realError = ''
++      try {
++        const results = await probeUserApis()
++        setProbeRanking(results)
++        const warmIds = results.filter(r => r.ok > 0).slice(0, 4).map(r => r.id)
++        if (warmIds.length) void warmProbeWindows(warmIds)
++        this.list = [...results].sort((a, b) => {
++          const an = a.avgMs == null ? 1 : 0
++          const bn = b.avgMs == null ? 1 : 0
++          if (an !== bn) return an - bn
++          if (an === 0) return a.avgMs - b.avgMs
++          return (statusPriority[a.status] ?? 3) - (statusPriority[b.status] ?? 3)
++        }).map(item => ({ ...item, realOk: null, realMs: null, realLive: false }))
++        const first = this.list.find(item => item.avgMs != null)
++        if (first) this.selectedId = first.id
++      } catch (err) {
++        this.error = this.$t('user_api_probe_modal__failed', { message: err.message })
++      } finally {
++        this.loading = false
++      }
++      void this.runRealTest()
++    },
++    async runRealTest() {
++      const song = playMusicInfo.musicInfo
++      if (!song || !('source' in song)) {
++        this.realError = this.$t('user_api_probe_modal__no_song')
++        return
++      }
++      const ids = this.list.map(item => item.id)
++      if (!ids.length) return
++      const activeId = apiSource.value
++      // 当前源若正在实际播放这首歌，直接以“实播为准”判为可播
++      const playingActive = !!isPlay.value && !!playMusicInfo.musicInfo
++      this.realLoading = true
++      try {
++        // 与播放一致：先试该歌的“其它平台版本”(toggleMusicInfo)，再试原曲
++        const candidates = []
++        const toggle = song.meta?.toggleMusicInfo
++        if (toggle) candidates.push(toggle)
++        candidates.push(song)
++        const requests = candidates.map(mi => ({
++          source: mi.source,
++          action: 'musicUrl',
++          info: { type: getPlayQuality(appSetting['player.playQuality'], mi), musicInfo: mi },
++        }))
++        const results = await probeSourcesReal(ids, requests)
++        const map = new Map(results.map(r => [r.apiId, r]))
++        this.list = this.list.map(item => {
++          if (item.id === activeId && playingActive) {
++            return { ...item, realOk: true, realMs: null, realLive: true }
++          }
++          const r = map.get(item.id)
++          return { ...item, realOk: r ? r.ok : false, realMs: r ? r.ms : null, realLive: false }
++        })
++        // 有真实可播放的源时，默认选中第一个可播放的
++        const bestReal = this.list.find(item => item.realOk === true)
++        if (bestReal) this.selectedId = bestReal.id
++      } catch (err) {
++        this.realError = this.$t('user_api_probe_modal__real_failed', { message: err.message })
++      } finally {
++        this.realLoading = false
++      }
++    },
++    handleSelect(item) {
++      if (!this.isSelectable(item)) return
++      this.selectedId = item.id
++    },
++    handleConfirm() {
++      if (!this.selectedId) return
++      this.$emit('select', this.selectedId)
++      this.handleClose()
++    },
++    handleClose() {
++      this.$emit('update:show', false)
++    },
++  },
++}
++</script>
++
++<style lang="less" module>
++@import '@renderer/assets/styles/layout.less';
++
++.main {
++  padding: 0 15px;
++  width: 600px;
++  max-width: 92vw;
++  min-width: 320px;
++  display: flex;
++  flex-flow: column nowrap;
++  min-height: 0;
++  max-height: 80vh;
++  h2 {
++    font-size: 16px;
++    color: var(--color-font);
++    line-height: 1.3;
++    text-align: center;
++    padding: 15px 0 8px;
++  }
++}
++.tip {
++  font-size: 12px;
++  line-height: 1.4;
++  color: var(--color-font-label);
++}
++.realNote {
++  margin-top: 6px;
++  font-size: 12px;
++  line-height: 1.4;
++  color: #e6a23c;
++}
++.content {
++  flex: auto;
++  min-height: 100px;
++  margin-top: 8px;
++  overflow-y: auto;
++}
++.empty {
++  height: 120px;
++  font-size: 14px;
++  color: var(--color-font-label);
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  text-align: center;
++  padding: 0 10px;
++}
++.list {
++  padding: 0 2px;
++}
++.item {
++  padding: 8px 10px;
++  border-radius: @radius-border;
++  cursor: pointer;
++  &:hover {
++    background-color: var(--color-primary-background-hover);
++  }
++  &.itemActive {
++    background-color: var(--color-primary-background-active);
++  }
++  &.itemDisabled {
++    opacity: .55;
++    cursor: default;
++  }
++  + .item {
++    margin-top: 2px;
++  }
++}
++.rowTop {
++  display: flex;
++  flex-flow: row nowrap;
++  align-items: center;
++}
++.rank {
++  flex: none;
++  width: 22px;
++  font-size: 12px;
++  color: var(--color-font-label);
++}
++.name {
++  flex: auto;
++  min-width: 0;
++  font-size: 14px;
++  color: var(--color-font);
++  .mixin-ellipsis-1();
++}
++.check {
++  flex: none;
++  width: 16px;
++  text-align: center;
++  color: var(--color-primary);
++  font-size: 12px;
++  margin-left: 8px;
++}
++.rowMeta {
++  display: flex;
++  flex-flow: row nowrap;
++  flex-wrap: wrap;
++  margin-top: 4px;
++  padding-left: 22px;
++  font-size: 12px;
++  color: var(--color-font-label);
++  span + span::before {
++    content: '·';
++    margin: 0 6px;
++    opacity: .6;
++  }
++}
++.ok { color: var(--color-primary); }
++.warn { color: #e6a23c; }
++.dead { color: #f56c6c; }
++.rowReal {
++  display: flex;
++  flex-flow: row nowrap;
++  align-items: center;
++  margin-top: 3px;
++  padding-left: 22px;
++  font-size: 12px;
++}
++.realTag {
++  flex: none;
++  color: var(--color-font-label);
++  margin-right: 6px;
++}
++.realOk { color: var(--color-primary); }
++.realBad { color: #f56c6c; }
++.realTesting { color: var(--color-font-label); }
++.footer {
++  margin: 12px 0 15px auto;
++}
++.btn {
++  min-width: 90px;
 +  + .btn {
 +    margin-left: 10px;
 +  }
