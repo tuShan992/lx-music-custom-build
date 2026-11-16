@@ -1,8 +1,19 @@
 diff --git a/build-config/build-pack.js b/build-config/build-pack.js
-index 5cc09d4..ae201dd 100644
+index 5cc09d4..1acc96d 100644
 --- a/build-config/build-pack.js
 +++ b/build-config/build-pack.js
-@@ -266,6 +266,10 @@ const createTarget = {
+@@ -109,6 +109,10 @@ const macOptions = {
+     icon: './resources/icons/icon.icns',
+     category: 'public.app-category.music',
+     // artifactName: '${productName}-${version}.${ext}',
++    // 无签名证书时显式做 ad-hoc 签名，给整个 bundle 封签，避免 Apple Silicon 上因 bundle 未签名报"已损坏"；
++    // ad-hoc 必须关硬化运行时，否则库校验会拒绝加载 Electron 预签名框架导致启动失败。
++    identity: '-',
++    hardenedRuntime: false,
+   },
+   dmg: {
+     window: {
+@@ -266,6 +270,10 @@ const createTarget = {
   * @param {*} packageType 包类型
   * @param {'onTagOrDraft' | 'always' | 'never'} publishType 发布类型
   */
