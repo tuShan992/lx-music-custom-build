@@ -78,6 +78,6 @@ git diff --cached --binary > /path/to/lx-music-custom-build/lx-music-changes.pat
 
 ## 注意
 
-- 安装包**未签名**：自己用右键打开即可；分发给别人会被 Gatekeeper / SmartScreen 拦。
+- macOS 包做的是 **ad-hoc 签名**（无 Apple 开发者证书）：Apple Silicon 上不会再报「已损坏」，但首次从浏览器下载打开仍可能被 Gatekeeper 拦，右键「打开」或在「系统设置 → 隐私与安全性」放行即可；若仍提示损坏，可执行 `xattr -dr com.apple.quarantine "/Applications/lx-music-desktop.app"` 清隔离属性。Windows 包未签名，SmartScreen 会拦。
 - LX Music 自带「软件更新」检查，可能提示/下载官方新版，装了补丁后会丢。建议在设置里关掉更新检查。
 - 用 release tag，不要用 master。
