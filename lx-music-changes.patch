@@ -2613,7 +2613,7 @@ index 92b3caa..3555fd7 100644
      base-checkbox(id="setting_player_lyric_s2t" :model-value="appSetting['player.isS2t']" :label="$t('setting__play_lyric_s2t')" @update:model-value="updateSetting({'player.isS2t': $event})")
    .gap-top
 diff --git a/src/renderer/views/Setting/components/UserApiModal.vue b/src/renderer/views/Setting/components/UserApiModal.vue
-index a911799..2af1c8a 100644
+index d1f9141..2af1c8a 100644
 --- a/src/renderer/views/Setting/components/UserApiModal.vue
 +++ b/src/renderer/views/Setting/components/UserApiModal.vue
 @@ -1,7 +1,10 @@
@@ -2628,11 +2628,14 @@ index a911799..2af1c8a 100644
      ul.scroll(v-if="apiList.length" :class="$style.content")
        li(v-for="(api, index) in apiList" :key="api.id" :class="[$style.listItem, {[$style.active]: appSetting['common.apiSource'] == api.id}]")
          div(:class="$style.listLeft")
-@@ -27,8 +30,13 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
+@@ -23,10 +26,17 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
+         span.hover.underline(aria-label="https://lxmusic.toside.cn/desktop/custom-source" @click="handleOpenUrl('https://lyswhut.github.io/lx-music-doc/desktop/custom-source')") FAQ
+       p {{ $t('user_api__note') }}
+     div(:class="$style.footer")
++      base-btn(:class="$style.footerBtn" @click="isShowOneClickImportModal = true") {{ $t('user_api__btn_one_click_import') }}
        base-btn(:class="$style.footerBtn" @click="isShowOnlineImportModal = true") {{ $t('user_api__btn_import_online') }}
        base-btn(:class="$style.footerBtn" @click="handleImport") {{ $t('user_api__btn_import') }}
        //- base-btn(:class="$style.footerBtn" @click="handleExport") {{ $t('user_api__btn_export') }}
--    UserApiOneClickImportModal(v-model:show="isShowOneClickImportModal")
 +    div(v-if="importLoading" :class="$style.importMask")
 +      div(:class="$style.importBox")
 +        div(:class="$style.spinner")
@@ -2643,28 +2646,29 @@ index a911799..2af1c8a 100644
  </template>
  
  <script>
-@@ -40,14 +48,17 @@ import { userApi } from '@renderer/store'
+@@ -38,12 +48,17 @@ import { userApi } from '@renderer/store'
  import { appSetting, updateSetting } from '@renderer/store/setting'
  import { computed, ref } from '@common/utils/vueTools'
  import { dialog } from '@renderer/plugins/Dialog'
 +import { setUserApi } from '@renderer/core/apiSource'
  
- import UserApiOneClickImportModal from './UserApiOneClickImportModal.vue'
++import UserApiOneClickImportModal from './UserApiOneClickImportModal.vue'
  import UserApiOnlineImportModal from './UserApiOnlineImportModal.vue'
 +import UserApiProbeModal from './UserApiProbeModal.vue'
  
  export default {
    components: {
-     UserApiOneClickImportModal,
++    UserApiOneClickImportModal,
      UserApiOnlineImportModal,
 +    UserApiProbeModal,
    },
    props: {
      modelValue: {
-@@ -59,14 +70,18 @@ export default {
+@@ -54,13 +69,19 @@ export default {
+   emits: ['update:modelValue'],
    setup() {
      const isShowOnlineImportModal = ref(false)
-     const isShowOneClickImportModal = ref(false)
++    const isShowOneClickImportModal = ref(false)
 +    const isShowProbeModal = ref(false)
 +    const importLoading = ref(false)
      const apiList = computed(() => userApi.list)
@@ -2675,12 +2679,12 @@ index a911799..2af1c8a 100644
        appSetting,
 +      importLoading,
        isShowOnlineImportModal,
-       isShowOneClickImportModal,
++      isShowOneClickImportModal,
 +      isShowProbeModal,
      }
    },
    methods: {
-@@ -77,6 +92,9 @@ export default {
+@@ -71,6 +92,9 @@ export default {
          void dialog(this.$t('user_api_import__failed', { message: err.message }))
        })
      },
@@ -2690,7 +2694,7 @@ index a911799..2af1c8a 100644
      handleImport() {
        if (this.userApi.list.length > 20) {
          this.$dialog({
-@@ -112,6 +130,16 @@ export default {
+@@ -106,6 +130,16 @@ export default {
        }
        userApi.list = await removeUserApi([api.id])
      },
@@ -2707,7 +2711,7 @@ index a911799..2af1c8a 100644
      handleClose() {
        this.$emit('update:modelValue', false)
      },
-@@ -136,6 +164,7 @@ export default {
+@@ -130,6 +164,7 @@ export default {
    display: flex;
    flex-flow: column nowrap;
    min-height: 0;
@@ -2715,7 +2719,7 @@ index a911799..2af1c8a 100644
    // max-height: 100%;
    // overflow: hidden;
    h2 {
-@@ -163,6 +192,58 @@ export default {
+@@ -157,6 +192,58 @@ export default {
    margin-top: 15px;
    padding: 0 7px;
  }
@@ -2775,72 +2779,81 @@ index a911799..2af1c8a 100644
    display: flex;
    flex-flow: row nowrap;
 diff --git a/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
-index add10c1..334bf46 100644
---- a/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
+new file mode 100644
+index 0000000..334bf46
+--- /dev/null
 +++ b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
-@@ -2,6 +2,7 @@
-   <material-modal :show="show" teleport="#view" @close="handleClose">
-     <main :class="$style.main">
-       <h2>{{ $t('user_api_one_click__title') }}</h2>
+@@ -0,0 +1,416 @@
++<template>
++  <material-modal :show="show" teleport="#view" @close="handleClose">
++    <main :class="$style.main">
++      <h2>{{ $t('user_api_one_click__title') }}</h2>
 +      <p :class="$style.tip">{{ tip.updated }}</p>
-       <div :class="$style.options">
-         <base-checkbox
-           id="user_api_one_click_only_available"
-@@ -10,17 +11,19 @@
-           :label="$t('user_api_one_click__only_available')"
-           @change="handleOnlyAvailableChange"
-         />
++      <div :class="$style.options">
++        <base-checkbox
++          id="user_api_one_click_only_available"
++          v-model="onlyAvailable"
++          :class="$style.option"
++          :label="$t('user_api_one_click__only_available')"
++          @change="handleOnlyAvailableChange"
++        />
 +        <p :class="$style.optionTip">{{ tip.desc }}</p>
-         <base-checkbox
-           id="user_api_one_click_use_proxy"
-           v-model="useProxy"
--          :class="$style.option"
++        <base-checkbox
++          id="user_api_one_click_use_proxy"
++          v-model="useProxy"
 +          :class="[$style.option, $style.optionGap]"
-           :label="$t('user_api_one_click__use_proxy')"
-         />
++          :label="$t('user_api_one_click__use_proxy')"
++        />
 +        <p :class="$style.optionTip">{{ $t('user_api_one_click__use_proxy_tip') }}</p>
-       </div>
--      <p :class="$style.tip">{{ $t('user_api_one_click__tip', { time: updatedAt || '-' }) }}</p>
-       <div :class="$style.content">
-         <div v-if="loading" :class="$style.empty">{{ $t('user_api_one_click__loading') }}</div>
-         <div v-else-if="loadError" :class="$style.empty">{{ loadError }}</div>
++      </div>
++      <div :class="$style.content">
++        <div v-if="loading" :class="$style.empty">{{ $t('user_api_one_click__loading') }}</div>
++        <div v-else-if="loadError" :class="$style.empty">{{ loadError }}</div>
 +        <div v-else-if="!list.length" :class="$style.empty">{{ $t('user_api__noitem') }}</div>
-         <ul v-else :class="$style.list">
-           <li v-for="item in list" :key="item.key" :class="$style.item">
-             <base-checkbox
-@@ -36,7 +39,7 @@
-       </div>
-       <div :class="$style.footer">
-         <base-btn :class="$style.btn" @click="handleClose">{{ $t('btn_close') }}</base-btn>
--        <base-btn :class="$style.btn" :disabled="disabled || loading || !!loadError" @click="handleImport">{{ btnText }}</base-btn>
++        <ul v-else :class="$style.list">
++          <li v-for="item in list" :key="item.key" :class="$style.item">
++            <base-checkbox
++              :id="`user_api_one_click_${item.key}`"
++              v-model="selected"
++              :value="item.key"
++              :class="$style.itemCheckbox"
++              :label="item.key"
++            />
++            <span :class="[$style.status, $style[item.cls]]">{{ item.status }}</span>
++          </li>
++        </ul>
++      </div>
++      <div :class="$style.footer">
++        <base-btn :class="$style.btn" @click="handleClose">{{ $t('btn_close') }}</base-btn>
 +        <base-btn :class="$style.btn" :disabled="disabled || loading || !!loadError || !selected.length" @click="handleImport">{{ btnText }}</base-btn>
-       </div>
-     </main>
-   </material-modal>
-@@ -45,13 +48,18 @@
- <script>
- import { dialog } from '@renderer/plugins/Dialog'
- import { httpFetch } from '@renderer/utils/request'
--import { importUserApi } from '@renderer/utils/ipc'
++      </div>
++    </main>
++  </material-modal>
++</template>
++
++<script>
++import { dialog } from '@renderer/plugins/Dialog'
++import { httpFetch } from '@renderer/utils/request'
 +import { importUserApi, probeUserApis, removeUserApi, warmProbeWindows } from '@renderer/utils/ipc'
- import { userApi } from '@renderer/store'
++import { userApi } from '@renderer/store'
 +import { appSetting } from '@renderer/store/setting'
 +import { setUserApi } from '@renderer/core/apiSource'
 +import { getProbeRanking, getProbeRankingAt, setProbeRanking } from '@renderer/core/userApiSourceCache'
- 
- const RAW_BASE = 'https://raw.githubusercontent.com/pdone/lx-music-source'
- const PROXY_BASE = 'https://ghproxy.net/raw.githubusercontent.com/pdone/lx-music-source'
- const HEALTH_PATH = '/health-status/health-state.json'
- const SOURCE_PATH = '/main'
++
++const RAW_BASE = 'https://raw.githubusercontent.com/pdone/lx-music-source'
++const PROXY_BASE = 'https://ghproxy.net/raw.githubusercontent.com/pdone/lx-music-source'
++const HEALTH_PATH = '/health-status/health-state.json'
++const SOURCE_PATH = '/main'
 +// 复用上次测速结果的最长时差：只覆盖“连续重复导入”，隔夜或隔太久一律重新探测
 +const PROBE_REUSE_TTL = 2 * 60 * 1000
- 
- const statusClass = (status) => {
-   switch (status) {
-@@ -60,6 +68,17 @@ const statusClass = (status) => {
-     default: return 'invalid'
-   }
- }
++
++const statusClass = (status) => {
++  switch (status) {
++    case '可用': return 'available'
++    case '异常': return 'warn'
++    default: return 'invalid'
++  }
++}
 +const truncateInfo = (text, len) => text.length > len ? text.substring(0, len) + '...' : text
 +// 从脚本头部注释读取 @name/@author（与后端 utils.ts 的截断规则一致），用于把目录 key 映射到已安装源
 +const parseScriptHeader = (script) => {
@@ -2852,25 +2865,29 @@ index add10c1..334bf46 100644
 +    author: author ? truncateInfo(author[1].trim(), 56) : '',
 +  }
 +}
- 
- export default {
-   props: {
-@@ -68,7 +87,7 @@ export default {
-       default: false,
-     },
-   },
--  emits: ['update:show'],
++
++export default {
++  props: {
++    show: {
++      type: Boolean,
++      default: false,
++    },
++  },
 +  emits: ['update:show', 'import-start', 'import-done'],
-   data() {
-     return {
-       onlyAvailable: true,
-@@ -80,8 +99,16 @@ export default {
-       loadError: '',
-       disabled: false,
-       btnText: '',
++  data() {
++    return {
++      onlyAvailable: true,
++      useProxy: false,
++      list: [],
++      selected: [],
++      updatedAt: '',
++      loading: false,
++      loadError: '',
++      disabled: false,
++      btnText: '',
 +      probePromise: null,
-     }
-   },
++    }
++  },
 +  computed: {
 +    // 描述拆成两行：第一行跟勾选项，第二行是状态更新时间
 +    tip() {
@@ -2878,20 +2895,59 @@ index add10c1..334bf46 100644
 +      return { desc, updated }
 +    },
 +  },
-   watch: {
-     show(n) {
-       if (n) void this.init()
-@@ -129,40 +156,156 @@ export default {
-     },
-     applyDefaultSelect(onlyAvailable = this.onlyAvailable) {
-       this.selected = this.list
--        .filter(item => !onlyAvailable || item.status === '可用')
++  watch: {
++    show(n) {
++      if (n) void this.init()
++    },
++  },
++  methods: {
++    handleClose() {
++      this.$emit('update:show', false)
++    },
++    fetchText(url) {
++      return httpFetch(url, { timeout: 20_000 }).promise.then(resp => resp.body)
++    },
++    async fetchHealth() {
++      let lastErr
++      for (const base of [RAW_BASE, PROXY_BASE]) {
++        try {
++          const body = await this.fetchText(base + HEALTH_PATH)
++          return typeof body === 'string' ? JSON.parse(body) : body
++        } catch (err) {
++          lastErr = err
++        }
++      }
++      throw lastErr
++    },
++    async init() {
++      this.loading = true
++      this.loadError = ''
++      this.list = []
++      this.selected = []
++      this.updatedAt = ''
++      this.onlyAvailable = true
++      this.useProxy = false
++      this.disabled = false
++      this.btnText = this.$t('user_api_one_click__import')
++      try {
++        const data = await this.fetchHealth()
++        this.list = Object.entries(data.sources || {}).map(([key, status]) => ({ key, status, cls: statusClass(status) }))
++        this.updatedAt = data.updated_at || ''
++        this.applyDefaultSelect()
++      } catch (err) {
++        this.loadError = this.$t('user_api_one_click__load_failed', { message: err.message })
++      } finally {
++        this.loading = false
++      }
++    },
++    applyDefaultSelect(onlyAvailable = this.onlyAvailable) {
++      this.selected = this.list
 +        .filter(item => !onlyAvailable || item.status !== '失效')
-         .map(item => item.key)
-     },
-     handleOnlyAvailableChange(onlyAvailable) {
-       this.applyDefaultSelect(onlyAvailable)
-     },
++        .map(item => item.key)
++    },
++    handleOnlyAvailableChange(onlyAvailable) {
++      this.applyDefaultSelect(onlyAvailable)
++    },
 +    // 仅当“刚刚”测过、且已装源集合与上次结果一致时才复用缓存，避免重复导入重复整体探测
 +    cacheMatchesCurrentList() {
 +      const cached = getProbeRanking()
@@ -2900,16 +2956,10 @@ index add10c1..334bf46 100644
 +      const cur = userApi.list.map(api => api.id).sort().join(',')
 +      return cached.map(r => r.id).sort().join(',') === cur
 +    },
-     async handleImport() {
-       if (!this.selected.length) return
--      if (userApi.list.length + this.selected.length > 20) {
--        void dialog(this.$t('user_api__max_tip'))
--        return
--      }
-       this.disabled = true
--      this.btnText = this.$t('user_api_import_online__input_loading')
-       const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
--      let ok = 0
++    async handleImport() {
++      if (!this.selected.length) return
++      this.disabled = true
++      const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
 +
 +      // 导入一开始就并行探测当前已装源；若本机已有同一批已装源的测速结果则直接复用，不再重复探测
 +      if (!this.cacheMatchesCurrentList()) {
@@ -2924,18 +2974,14 @@ index add10c1..334bf46 100644
 +      let skipped = 0
 +      let reachLimit = false
 +      let finalList = userApi.list
-       const fails = []
-       for (const key of this.selected) {
-         try {
-           const script = await this.fetchText(`${base}/${key}/latest.js`)
--          const { apiList } = await importUserApi(script)
--          userApi.list = apiList
--          ok++
++      const fails = []
++      for (const key of this.selected) {
++        try {
++          const script = await this.fetchText(`${base}/${key}/latest.js`)
 +          const { apiList, updated: isUpdate } = await importUserApi(script)
 +          finalList = apiList
 +          isUpdate ? updated++ : added++
-         } catch (err) {
--          fails.push(`${key}: ${err.message}`)
++        } catch (err) {
 +          const message = err.message || ''
 +          // 后端按「作者+名字+version」去重：同版本跳过；同名同作者的新版本覆盖更新；达到 20 上限则停止
 +          // shortcut: 靠后端中文错误文案判定类型（IPC 会丢弃自定义错误码），改文案需同步这里
@@ -2948,13 +2994,8 @@ index add10c1..334bf46 100644
 +            break
 +          }
 +          fails.push(`${key}: ${message}`)
-         }
-       }
--      this.disabled = false
--      this.btnText = this.$t('user_api_one_click__import')
--      this.handleClose()
--      if (fails.length) {
--        void dialog(this.$t('user_api_one_click__import_result', { ok, fail: fails.length, detail: fails.join('\n') }))
++        }
++      }
 +      userApi.list = finalList
 +      this.$emit('import-done')
 +      // 若本次有新增/更新，早前启动的探测已过期，重新探测以保证“最稳定源”准确
@@ -3017,8 +3058,7 @@ index add10c1..334bf46 100644
 +      }
 +      if (isSwitch) {
 +        await dialog(this.$t('user_api_probe__done_switch', { name: best.name, rate, ms }))
-       } else {
--        void dialog(this.$t('user_api_one_click__import_success', { ok }))
++      } else {
 +        await dialog(this.$t('user_api_probe__done_keep', { name: best.name, rate, ms }))
 +      }
 +    },
@@ -3052,38 +3092,114 @@ index add10c1..334bf46 100644
 +        await dialog(this.$t('user_api_one_click__remove_invalid_done', { count: ids.length }))
 +      } catch (err) {
 +        console.log(err)
-       }
-     },
-   },
-@@ -195,16 +338,23 @@ export default {
- .option {
-   font-size: 14px;
-   opacity: .9;
--  + .option {
--    margin-top: 8px;
--  }
- }
--.tip {
--  margin-top: 10px;
++      }
++    },
++  },
++}
++</script>
++
++<style lang="less" module>
++@import '@renderer/assets/styles/layout.less';
++
++.main {
++  padding: 0 15px;
++  width: 450px;
++  min-width: 280px;
++  display: flex;
++  flex-flow: column nowrap;
++  min-height: 0;
++  max-height: 80vh;
++  h2 {
++    font-size: 16px;
++    color: var(--color-font);
++    line-height: 1.3;
++    text-align: center;
++    padding: 15px 0 10px;
++  }
++}
++.options {
++  display: flex;
++  flex-flow: column nowrap;
++}
++.option {
++  font-size: 14px;
++  opacity: .9;
++}
 +.optionGap {
 +  margin-top: 8px;
 +}
 +.optionTip {
 +  margin: 4px 0 0 19px; // 对齐勾选框标签：1em 复选框宽 + 5px 间距
-   font-size: 12px;
-   line-height: 1.4;
-   color: var(--color-font-label);
++  font-size: 12px;
++  line-height: 1.4;
++  color: var(--color-font-label);
 +}
 +.tip {
 +  margin: 0 0 10px;
 +  font-size: 13px;
 +  line-height: 1.4;
 +  color: var(--color-font-label);
-   white-space: pre-line;
++  white-space: pre-line;
 +  text-align: center;
- }
- .content {
-   flex: auto;
++}
++.content {
++  flex: auto;
++  min-height: 80px;
++  margin-top: 10px;
++  overflow-y: auto;
++}
++.empty {
++  height: 100px;
++  font-size: 14px;
++  color: var(--color-font-label);
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  text-align: center;
++  white-space: pre-line;
++  padding: 0 10px;
++}
++.list {
++  padding: 0 2px;
++}
++.item {
++  display: flex;
++  flex-flow: row nowrap;
++  align-items: center;
++  justify-content: space-between;
++  padding: 8px 6px;
++  border-radius: @radius-border;
++  &:hover {
++    background-color: var(--color-primary-background-hover);
++  }
++}
++.itemCheckbox {
++  font-size: 14px;
++}
++.status {
++  flex: none;
++  font-size: 12px;
++  margin-left: 10px;
++  &.available {
++    color: var(--color-primary);
++  }
++  &.warn {
++    color: #e6a23c;
++  }
++  &.invalid {
++    color: #f56c6c;
++  }
++}
++.footer {
++  margin: 15px 0 15px auto;
++}
++.btn {
++  min-width: 70px;
++  + .btn {
++    margin-left: 10px;
++  }
++}
++</style>
 diff --git a/src/renderer/views/Setting/components/UserApiProbeModal.vue b/src/renderer/views/Setting/components/UserApiProbeModal.vue
 new file mode 100644
 index 0000000..e321e2f
