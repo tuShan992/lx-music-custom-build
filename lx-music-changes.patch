@@ -100,7 +100,7 @@ index 841bd09..d70345a 100644
  
    }
 diff --git a/src/lang/en-us.json b/src/lang/en-us.json
-index bf9484a..807cf13 100644
+index bf9484a..610b7f1 100644
 --- a/src/lang/en-us.json
 +++ b/src/lang/en-us.json
 @@ -64,6 +64,7 @@
@@ -138,7 +138,7 @@ index bf9484a..807cf13 100644
    "user_api__import_file": "Choose Music API script file",
    "user_api__init_failed_alert": "Failed to initialize Music API \"{name}\": ",
    "user_api__max_tip": "There can only be a maximum of 20 APIs at the same time🤪.\n\nIf you want to continue importing, please remove some unnecessary APIs to make room.",
-@@ -744,5 +751,42 @@
+@@ -744,5 +751,43 @@
    "user_api_import_online__input_confirm": "Import",
    "user_api_import_online__input_loading": "Importing...",
    "user_api_import_online__input_tip": "Please enter an HTTP link",
@@ -146,9 +146,10 @@ index bf9484a..807cf13 100644
 +  "user_api_import_online__title": "Import Music API from network.",
 +  "user_api__btn_one_click_import": "One-Click Import",
 +  "user_api_one_click__title": "One-Click Import Music APIs",
-+  "user_api_one_click__only_available": "Only import available APIs",
-+  "user_api_one_click__use_proxy": "Use proxy links (for users who cannot access GitHub)",
-+  "user_api_one_click__tip": "When checked, only available APIs are selected; when unchecked, all are selected by default.\nStatus updated at {time} (Beijing time)",
++  "user_api_one_click__only_available": "Exclude invalid APIs",
++  "user_api_one_click__use_proxy": "Use proxy links",
++  "user_api_one_click__use_proxy_tip": "For users who cannot access GitHub",
++  "user_api_one_click__tip": "When checked, only invalid APIs are excluded (available and abnormal APIs stay selected); when unchecked, all are selected by default.\nStatus updated at {time} (Beijing time)",
 +  "user_api_one_click__loading": "Loading API list...",
 +  "user_api_one_click__load_failed": "Failed to load API list:\n{message}",
 +  "user_api_one_click__import": "Import",
@@ -183,7 +184,7 @@ index bf9484a..807cf13 100644
 +  "user_api_one_click__remove_invalid_done": "Removed {count} invalid API(s)"
  }
 diff --git a/src/lang/ko-kr.json b/src/lang/ko-kr.json
-index eb6b6ae..c918259 100644
+index eb6b6ae..5f45a3d 100644
 --- a/src/lang/ko-kr.json
 +++ b/src/lang/ko-kr.json
 @@ -64,6 +64,7 @@
@@ -221,7 +222,7 @@ index eb6b6ae..c918259 100644
    "user_api__import_file": "음악 API 스크립트 파일을 선택하세요",
    "user_api__init_failed_alert": "음악 API \"{name}\" 초기화 실패: ",
    "user_api__max_tip": "동시에 최대 20개의 API만 사용할 수 있습니다🤪.\n\n계속 가져오려면 불필요한 API를 삭제하여 공간을 확보해 주세요.",
-@@ -744,5 +751,42 @@
+@@ -744,5 +751,43 @@
    "user_api_import_online__input_confirm": "가져오기",
    "user_api_import_online__input_loading": "가져오는 중...",
    "user_api_import_online__input_tip": "HTTP 링크를 입력하세요",
@@ -229,9 +230,10 @@ index eb6b6ae..c918259 100644
 +  "user_api_import_online__title": "네트워크에서 음악 API 가져오기",
 +  "user_api__btn_one_click_import": "원클릭 가져오기",
 +  "user_api_one_click__title": "음악 API 원클릭 가져오기",
-+  "user_api_one_click__only_available": "사용 가능한 음악 소스만 가져오기",
-+  "user_api_one_click__use_proxy": "가속 링크 사용 (GitHub 접속이 제한된 사용자용)",
-+  "user_api_one_click__tip": "체크 시 사용 가능한 음악 소스만 선택되며, 체크 해제 시 기본적으로 전체 선택됩니다.\n상태 업데이트: {time} (베이징 시간)",
++  "user_api_one_click__only_available": "사용 불가 음악 소스 제외",
++  "user_api_one_click__use_proxy": "가속 링크 사용",
++  "user_api_one_click__use_proxy_tip": "GitHub 접속이 제한된 사용자용",
++  "user_api_one_click__tip": "체크 시 사용 불가 음악 소스만 제외되며(사용 가능·이상 모두 선택), 체크 해제 시 기본적으로 전체 선택됩니다.\n상태 업데이트: {time} (베이징 시간)",
 +  "user_api_one_click__loading": "음악 소스 목록을 가져오는 중...",
 +  "user_api_one_click__load_failed": "음악 소스 목록을 가져오지 못했습니다:\n{message}",
 +  "user_api_one_click__import": "가져오기",
@@ -266,7 +268,7 @@ index eb6b6ae..c918259 100644
 +  "user_api_one_click__remove_invalid_done": "사용 불가 음악 소스 {count}개를 제거했습니다"
  }
 diff --git a/src/lang/zh-cn.json b/src/lang/zh-cn.json
-index cc98c60..3ea464e 100644
+index cc98c60..e137d61 100644
 --- a/src/lang/zh-cn.json
 +++ b/src/lang/zh-cn.json
 @@ -64,6 +64,7 @@
@@ -304,7 +306,7 @@ index cc98c60..3ea464e 100644
    "user_api__import_file": "选择自定义源 API 脚本文件",
    "user_api__init_failed_alert": "自定义源「{name}」初始化失败：",
    "user_api__max_tip": "最多只能同时存在 20 个源哦🤪\n想要继续导入的话，请先移除一些旧的源腾出位置吧",
-@@ -744,5 +751,42 @@
+@@ -744,5 +751,43 @@
    "user_api_import_online__input_confirm": "导入",
    "user_api_import_online__input_loading": "导入中...",
    "user_api_import_online__input_tip": "请输入 HTTP 链接",
@@ -312,9 +314,10 @@ index cc98c60..3ea464e 100644
 +  "user_api_import_online__title": "在线导入自定义源",
 +  "user_api__btn_one_click_import": "一键导入",
 +  "user_api_one_click__title": "一键导入音源",
-+  "user_api_one_click__only_available": "仅导入可用音源",
-+  "user_api_one_click__use_proxy": "使用加速链接（供访问 GitHub 受限的用户使用）",
-+  "user_api_one_click__tip": "勾选时仅选择可用音源；取消勾选后默认全选。\n状态更新于 {time}（北京时间）",
++  "user_api_one_click__only_available": "排除失效音源",
++  "user_api_one_click__use_proxy": "使用加速链接",
++  "user_api_one_click__use_proxy_tip": "供访问 GitHub 受限的用户使用",
++  "user_api_one_click__tip": "勾选时仅排除失效音源（可用与异常均勾选）；取消勾选后默认全选。\n状态更新于 {time}（北京时间）",
 +  "user_api_one_click__loading": "正在获取音源列表...",
 +  "user_api_one_click__load_failed": "获取音源列表失败：\n{message}",
 +  "user_api_one_click__import": "导入",
@@ -349,7 +352,7 @@ index cc98c60..3ea464e 100644
 +  "user_api_one_click__remove_invalid_done": "已移除 {count} 个失效音源"
  }
 diff --git a/src/lang/zh-tw.json b/src/lang/zh-tw.json
-index 7fdbcd9..e7be37a 100644
+index 7fdbcd9..d3433f5 100644
 --- a/src/lang/zh-tw.json
 +++ b/src/lang/zh-tw.json
 @@ -64,6 +64,7 @@
@@ -387,7 +390,7 @@ index 7fdbcd9..e7be37a 100644
    "user_api__import_file": "選取自訂來源 API 腳本檔案",
    "user_api__init_failed_alert": "自訂來源 API「{name}」初始化失敗：",
    "user_api__max_tip": "最多只能同時存在 20 個 API 哦🤪\n想要繼續匯入的話，請先移除一些舊的 API 騰出位置吧",
-@@ -744,5 +751,42 @@
+@@ -744,5 +751,43 @@
    "user_api_import_online__input_confirm": "匯入",
    "user_api_import_online__input_loading": "匯入中...",
    "user_api_import_online__input_tip": "請輸入 HTTP 連結",
@@ -395,9 +398,10 @@ index 7fdbcd9..e7be37a 100644
 +  "user_api_import_online__title": "從線上匯入自訂來源 API",
 +  "user_api__btn_one_click_import": "一鍵匯入",
 +  "user_api_one_click__title": "一鍵匯入音源",
-+  "user_api_one_click__only_available": "僅匯入可用音源",
-+  "user_api_one_click__use_proxy": "使用加速連結（供存取 GitHub 受限的使用者使用）",
-+  "user_api_one_click__tip": "勾選時僅選擇可用音源；取消勾選後預設全選。\n狀態更新於 {time}（北京時間）",
++  "user_api_one_click__only_available": "排除失效音源",
++  "user_api_one_click__use_proxy": "使用加速連結",
++  "user_api_one_click__use_proxy_tip": "供存取 GitHub 受限的使用者使用",
++  "user_api_one_click__tip": "勾選時僅排除失效音源（可用與異常均勾選）；取消勾選後預設全選。\n狀態更新於 {time}（北京時間）",
 +  "user_api_one_click__loading": "正在取得音源清單...",
 +  "user_api_one_click__load_failed": "取得音源清單失敗：\n{message}",
 +  "user_api_one_click__import": "匯入",
@@ -527,10 +531,10 @@ index 96aad60..5fe0f59 100644
    mainSend(browserWindow, name, params)
 diff --git a/src/main/modules/userApi/parallel.ts b/src/main/modules/userApi/parallel.ts
 new file mode 100644
-index 0000000..2fc86ca
+index 0000000..5f1b79b
 --- /dev/null
 +++ b/src/main/modules/userApi/parallel.ts
-@@ -0,0 +1,205 @@
+@@ -0,0 +1,216 @@
 +import http from 'node:http'
 +import https from 'node:https'
 +
@@ -545,7 +549,8 @@ index 0000000..2fc86ca
 +const MAX_PARALLEL = 10
 +
 +// 探测窗口池：复用已加载好的源窗口，避免每次失败都重建窗口（1~3s）
-+const POOL_MAX = MAX_PARALLEL
++// 池容量对齐导入源上限（utils.ts 限制最多 20 个源），保证所有导入源都能常驻预热
++const POOL_MAX = 20
 +const POOL_IDLE = 60_000
 +interface PoolEntry { win: Electron.BrowserWindow, lastUsed: number }
 +const probePool = new Map<string, PoolEntry>()
@@ -633,53 +638,63 @@ index 0000000..2fc86ca
 +  url: string
 +}
 +
-+// 并行在前 maxParallel 个候选源里尝试取该歌播放链接，返回第一个“可取到且 URL 存活”的源
++// 单批（≤maxParallel 个窗口）并行尝试取该歌播放链接，返回第一个“可取到且 URL 存活”的源
++const tryWave = async(ids: string[], apiById: Map<string, LX.UserApi.UserApiInfo>, data: any): Promise<ParallelTryResult | null> => {
++  return await new Promise<ParallelTryResult | null>(resolve => {
++    let settled = false
++    let remaining = ids.length
++    let masterTimer: NodeJS.Timeout | null = null
++    const finish = (val: ParallelTryResult | null) => {
++      if (settled) return
++      settled = true
++      if (masterTimer) clearTimeout(masterTimer)
++      resolve(val)
++    }
++    masterTimer = setTimeout(() => { finish(null) }, READY_TIMEOUT + REQUEST_TIMEOUT + MASTER_EXTRA)
++    for (const id of ids) {
++      void (async() => {
++        try {
++          const win = await acquireWindow(apiById.get(id)!)
++          if (!win) return
++          const res = await requestOnWindow(win, data, REQUEST_TIMEOUT)
++          const url = res?.data?.url
++          if (typeof url === 'string' && /^https?:/.test(url) && await checkUrlAlive(url)) finish({ apiId: id, url })
++        } catch {
++          // 单个源失败不影响同批其它并行源
++        } finally {
++          remaining--
++          if (remaining === 0) finish(null)
++        }
++      })()
++    }
++  })
++}
++
++// 覆盖所有候选源：按每批 maxParallel 个窗口分批尝试，返回第一个可播放的源（同一时刻窗口数始终 ≤POOL_MAX）
 +export const tryApisForMusicUrl = async(apiIds: string[], data: any, maxParallel = MAX_PARALLEL): Promise<ParallelTryResult | null> => {
 +  if (running) return null
 +  const apiById = new Map(getUserApis().map(api => [api.id, api]))
-+  const ids = apiIds.filter(id => apiById.has(id)).slice(0, maxParallel)
++  const ids = apiIds.filter(id => apiById.has(id))
 +  if (!ids.length) return null
 +
 +  running = true
 +  try {
-+    return await new Promise<ParallelTryResult | null>(resolve => {
-+      let settled = false
-+      let remaining = ids.length
-+      let masterTimer: NodeJS.Timeout | null = null
-+      const finish = (val: ParallelTryResult | null) => {
-+        if (settled) return
-+        settled = true
-+        if (masterTimer) clearTimeout(masterTimer)
-+        resolve(val)
-+      }
-+      masterTimer = setTimeout(() => { finish(null) }, READY_TIMEOUT + REQUEST_TIMEOUT + MASTER_EXTRA)
-+      for (const id of ids) {
-+        void (async() => {
-+          try {
-+            const win = await acquireWindow(apiById.get(id)!)
-+            if (!win) return
-+            const res = await requestOnWindow(win, data, REQUEST_TIMEOUT)
-+            const url = res?.data?.url
-+            if (typeof url === 'string' && /^https?:/.test(url) && await checkUrlAlive(url)) finish({ apiId: id, url })
-+          } catch {
-+            // 单个源失败不影响其它并行源
-+          } finally {
-+            remaining--
-+            if (remaining === 0) finish(null)
-+          }
-+        })()
-+      }
-+    })
++    const size = Math.max(1, maxParallel)
++    for (let i = 0; i < ids.length; i += size) {
++      const hit = await tryWave(ids.slice(i, i + size), apiById, data)
++      if (hit) return hit
++    }
++    return null
 +  } finally {
 +    // eslint-disable-next-line require-atomic-updates
 +    running = false
 +  }
 +}
 +
-+// 预热：把前 max 个候选源窗口提前加载进池，使首次换源无需再建窗（后台、可失败）
-+export const warmProbeWindows = async(apiIds: string[], max = 4): Promise<void> => {
++// 预热：把所有导入音源窗口提前加载进池，使首次换源无需再建窗（后台、可失败）
++export const warmProbeWindows = async(apiIds: string[]): Promise<void> => {
 +  const apiById = new Map(getUserApis().map(api => [api.id, api]))
-+  const ids = apiIds.filter(id => apiById.has(id)).slice(0, max)
++  const ids = apiIds.filter(id => apiById.has(id))
 +  for (const id of ids) {
 +    const cached = probePool.get(id)
 +    if (cached && !cached.win.isDestroyed()) continue
@@ -738,10 +753,10 @@ index 0000000..2fc86ca
 +}
 diff --git a/src/main/modules/userApi/probe.ts b/src/main/modules/userApi/probe.ts
 new file mode 100644
-index 0000000..dd3fa08
+index 0000000..f72eea9
 --- /dev/null
 +++ b/src/main/modules/userApi/probe.ts
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,223 @@
 +import http from 'node:http'
 +import https from 'node:https'
 +
@@ -907,7 +922,12 @@ index 0000000..dd3fa08
 +
 +const probeHostRounds = async(host: string): Promise<ProbeAttempt[]> => {
 +  const attempts: ProbeAttempt[] = []
-+  for (let i = 0; i < PROBE_ROUNDS; i++) attempts.push(await probeHost(host))
++  for (let i = 0; i < PROBE_ROUNDS; i++) {
++    const attempt = await probeHost(host)
++    attempts.push(attempt)
++    // 已确认不可达(超时/连接失败)就不必再耗剩余轮次的超时，死源按 1 次失败计，大幅缩短整体耗时
++    if (attempt.raw === 'failed') break
++  }
 +  return attempts
 +}
 +
@@ -1674,7 +1694,7 @@ index 0000000..0d5aa7d
 +  return { highlightIndex, canLocateCurrent, handleLocateCurrentPlay }
 +}
 diff --git a/src/renderer/core/player/action.ts b/src/renderer/core/player/action.ts
-index 88995d0..b9ea758 100644
+index 88995d0..fabd0af 100644
 --- a/src/renderer/core/player/action.ts
 +++ b/src/renderer/core/player/action.ts
 @@ -13,6 +13,11 @@ import {
@@ -1761,13 +1781,13 @@ index 88995d0..b9ea758 100644
 +  const type = getPlayQuality(appSetting['player.playQuality'], mi as LX.Music.MusicInfoOnline)
 +  let hit: { apiId: string, url: string } | null
 +  try {
-+    hit = await tryUserApiSources(candidates.slice(0, 10), { source: mi.source, action: 'musicUrl', info: { type, musicInfo } })
++    hit = await tryUserApiSources(candidates, { source: mi.source, action: 'musicUrl', info: { type, musicInfo } })
 +  } catch {
 +    // 并行链路异常：退回旧的顺序换源兜底
 +    return { url: null, mayTrySequential: true }
 +  }
 +  if (!hit) {
-+    console.warn('[switch] parallel probe: no available source in', candidates.slice(0, 10))
++    console.warn('[switch] parallel probe: no available source in', candidates)
 +    return { url: null, mayTrySequential: false }
 +  }
 +  console.log('[switch] parallel probe hit:', hit.apiId)
@@ -1857,7 +1877,7 @@ index 88995d0..b9ea758 100644
      window.app_event.error()
      if (appSetting['player.autoSkipOnError']) addDelayNextTimeout()
 diff --git a/src/renderer/core/useApp/useInitUserApi.ts b/src/renderer/core/useApp/useInitUserApi.ts
-index 4042667..e114c95 100644
+index 4042667..e60c223 100644
 --- a/src/renderer/core/useApp/useInitUserApi.ts
 +++ b/src/renderer/core/useApp/useInitUserApi.ts
 @@ -1,6 +1,6 @@
@@ -1872,9 +1892,9 @@ index 4042667..e114c95 100644
        //   if (api) apiSource.value = api.id
        // }
        userApi.list = list
-+      // 当前使用自定义源时，后台预热前几个源窗口，加速首次自动换源
++      // 当前使用自定义源时，后台预热所有导入音源窗口（最多 10 个），加速首次自动换源
 +      if (/^user_api/.test(appSetting['common.apiSource'] || '')) {
-+        void warmProbeWindows(list.slice(0, 4).map(api => api.id))
++        void warmProbeWindows(list.map(api => api.id))
 +      }
      }).catch(err => {
        console.log(err)
@@ -2142,20 +2162,23 @@ index 650a865..6aea505 100644
    })
 diff --git a/src/renderer/core/userApiSourceCache.ts b/src/renderer/core/userApiSourceCache.ts
 new file mode 100644
-index 0000000..7136d3e
+index 0000000..70245cf
 --- /dev/null
 +++ b/src/renderer/core/userApiSourceCache.ts
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,29 @@
 +// 会话级缓存：最近一次音源测速结果 + 每首歌成功播放过的自定义源
 +// 供播放出错自动换源时挑选“最可能可用”的源，减少逐源重载的等待。
 +
 +let probeRanking: LX.UserApi.UserApiProbeResult[] = []
++let probedAt = 0
 +const songSourceCache = new Map<string, string>()
 +
 +export const setProbeRanking = (results: LX.UserApi.UserApiProbeResult[]) => {
 +  probeRanking = Array.isArray(results) ? results : []
++  probedAt = Date.now()
 +}
 +export const getProbeRanking = (): LX.UserApi.UserApiProbeResult[] => probeRanking
++export const getProbeRankingAt = (): number => probedAt
 +
 +export const setSongSource = (songId: string, apiId: string) => {
 +  if (songId && apiId) songSourceCache.set(songId, apiId)
@@ -2590,7 +2613,7 @@ index 92b3caa..3555fd7 100644
      base-checkbox(id="setting_player_lyric_s2t" :model-value="appSetting['player.isS2t']" :label="$t('setting__play_lyric_s2t')" @update:model-value="updateSetting({'player.isS2t': $event})")
    .gap-top
 diff --git a/src/renderer/views/Setting/components/UserApiModal.vue b/src/renderer/views/Setting/components/UserApiModal.vue
-index d1f9141..2af1c8a 100644
+index a911799..2af1c8a 100644
 --- a/src/renderer/views/Setting/components/UserApiModal.vue
 +++ b/src/renderer/views/Setting/components/UserApiModal.vue
 @@ -1,7 +1,10 @@
@@ -2605,14 +2628,11 @@ index d1f9141..2af1c8a 100644
      ul.scroll(v-if="apiList.length" :class="$style.content")
        li(v-for="(api, index) in apiList" :key="api.id" :class="[$style.listItem, {[$style.active]: appSetting['common.apiSource'] == api.id}]")
          div(:class="$style.listLeft")
-@@ -23,10 +26,17 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
-         span.hover.underline(aria-label="https://lxmusic.toside.cn/desktop/custom-source" @click="handleOpenUrl('https://lyswhut.github.io/lx-music-doc/desktop/custom-source')") FAQ
-       p {{ $t('user_api__note') }}
-     div(:class="$style.footer")
-+      base-btn(:class="$style.footerBtn" @click="isShowOneClickImportModal = true") {{ $t('user_api__btn_one_click_import') }}
+@@ -27,8 +30,13 @@ material-modal(:show="modelValue" bg-close teleport="#view" @close="handleClose"
        base-btn(:class="$style.footerBtn" @click="isShowOnlineImportModal = true") {{ $t('user_api__btn_import_online') }}
        base-btn(:class="$style.footerBtn" @click="handleImport") {{ $t('user_api__btn_import') }}
        //- base-btn(:class="$style.footerBtn" @click="handleExport") {{ $t('user_api__btn_export') }}
+-    UserApiOneClickImportModal(v-model:show="isShowOneClickImportModal")
 +    div(v-if="importLoading" :class="$style.importMask")
 +      div(:class="$style.importBox")
 +        div(:class="$style.spinner")
@@ -2623,29 +2643,28 @@ index d1f9141..2af1c8a 100644
  </template>
  
  <script>
-@@ -38,12 +48,17 @@ import { userApi } from '@renderer/store'
+@@ -40,14 +48,17 @@ import { userApi } from '@renderer/store'
  import { appSetting, updateSetting } from '@renderer/store/setting'
  import { computed, ref } from '@common/utils/vueTools'
  import { dialog } from '@renderer/plugins/Dialog'
 +import { setUserApi } from '@renderer/core/apiSource'
  
-+import UserApiOneClickImportModal from './UserApiOneClickImportModal.vue'
+ import UserApiOneClickImportModal from './UserApiOneClickImportModal.vue'
  import UserApiOnlineImportModal from './UserApiOnlineImportModal.vue'
 +import UserApiProbeModal from './UserApiProbeModal.vue'
  
  export default {
    components: {
-+    UserApiOneClickImportModal,
+     UserApiOneClickImportModal,
      UserApiOnlineImportModal,
 +    UserApiProbeModal,
    },
    props: {
      modelValue: {
-@@ -54,13 +69,19 @@ export default {
-   emits: ['update:modelValue'],
+@@ -59,14 +70,18 @@ export default {
    setup() {
      const isShowOnlineImportModal = ref(false)
-+    const isShowOneClickImportModal = ref(false)
+     const isShowOneClickImportModal = ref(false)
 +    const isShowProbeModal = ref(false)
 +    const importLoading = ref(false)
      const apiList = computed(() => userApi.list)
@@ -2656,12 +2675,12 @@ index d1f9141..2af1c8a 100644
        appSetting,
 +      importLoading,
        isShowOnlineImportModal,
-+      isShowOneClickImportModal,
+       isShowOneClickImportModal,
 +      isShowProbeModal,
      }
    },
    methods: {
-@@ -71,6 +92,9 @@ export default {
+@@ -77,6 +92,9 @@ export default {
          void dialog(this.$t('user_api_import__failed', { message: err.message }))
        })
      },
@@ -2671,7 +2690,7 @@ index d1f9141..2af1c8a 100644
      handleImport() {
        if (this.userApi.list.length > 20) {
          this.$dialog({
-@@ -106,6 +130,16 @@ export default {
+@@ -112,6 +130,16 @@ export default {
        }
        userApi.list = await removeUserApi([api.id])
      },
@@ -2688,7 +2707,7 @@ index d1f9141..2af1c8a 100644
      handleClose() {
        this.$emit('update:modelValue', false)
      },
-@@ -130,6 +164,7 @@ export default {
+@@ -136,6 +164,7 @@ export default {
    display: flex;
    flex-flow: column nowrap;
    min-height: 0;
@@ -2696,7 +2715,7 @@ index d1f9141..2af1c8a 100644
    // max-height: 100%;
    // overflow: hidden;
    h2 {
-@@ -157,6 +192,58 @@ export default {
+@@ -163,6 +192,58 @@ export default {
    margin-top: 15px;
    padding: 0 7px;
  }
@@ -2756,157 +2775,148 @@ index d1f9141..2af1c8a 100644
    display: flex;
    flex-flow: row nowrap;
 diff --git a/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
-new file mode 100644
-index 0000000..988b500
---- /dev/null
+index add10c1..334bf46 100644
+--- a/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
 +++ b/src/renderer/views/Setting/components/UserApiOneClickImportModal.vue
-@@ -0,0 +1,341 @@
-+<template>
-+  <material-modal :show="show" teleport="#view" @close="handleClose">
-+    <main :class="$style.main">
-+      <h2>{{ $t('user_api_one_click__title') }}</h2>
-+      <div :class="$style.options">
-+        <base-checkbox
-+          id="user_api_one_click_only_available"
-+          v-model="onlyAvailable"
-+          :class="$style.option"
-+          :label="$t('user_api_one_click__only_available')"
-+          @change="handleOnlyAvailableChange"
-+        />
-+        <base-checkbox
-+          id="user_api_one_click_use_proxy"
-+          v-model="useProxy"
-+          :class="$style.option"
-+          :label="$t('user_api_one_click__use_proxy')"
-+        />
-+      </div>
-+      <p :class="$style.tip">{{ $t('user_api_one_click__tip', { time: updatedAt || '-' }) }}</p>
-+      <div :class="$style.content">
-+        <div v-if="loading" :class="$style.empty">{{ $t('user_api_one_click__loading') }}</div>
-+        <div v-else-if="loadError" :class="$style.empty">{{ loadError }}</div>
+@@ -2,6 +2,7 @@
+   <material-modal :show="show" teleport="#view" @close="handleClose">
+     <main :class="$style.main">
+       <h2>{{ $t('user_api_one_click__title') }}</h2>
++      <p :class="$style.tip">{{ tip.updated }}</p>
+       <div :class="$style.options">
+         <base-checkbox
+           id="user_api_one_click_only_available"
+@@ -10,17 +11,19 @@
+           :label="$t('user_api_one_click__only_available')"
+           @change="handleOnlyAvailableChange"
+         />
++        <p :class="$style.optionTip">{{ tip.desc }}</p>
+         <base-checkbox
+           id="user_api_one_click_use_proxy"
+           v-model="useProxy"
+-          :class="$style.option"
++          :class="[$style.option, $style.optionGap]"
+           :label="$t('user_api_one_click__use_proxy')"
+         />
++        <p :class="$style.optionTip">{{ $t('user_api_one_click__use_proxy_tip') }}</p>
+       </div>
+-      <p :class="$style.tip">{{ $t('user_api_one_click__tip', { time: updatedAt || '-' }) }}</p>
+       <div :class="$style.content">
+         <div v-if="loading" :class="$style.empty">{{ $t('user_api_one_click__loading') }}</div>
+         <div v-else-if="loadError" :class="$style.empty">{{ loadError }}</div>
 +        <div v-else-if="!list.length" :class="$style.empty">{{ $t('user_api__noitem') }}</div>
-+        <ul v-else :class="$style.list">
-+          <li v-for="item in list" :key="item.key" :class="$style.item">
-+            <base-checkbox
-+              :id="`user_api_one_click_${item.key}`"
-+              v-model="selected"
-+              :value="item.key"
-+              :class="$style.itemCheckbox"
-+              :label="item.key"
-+            />
-+            <span :class="[$style.status, $style[item.cls]]">{{ item.status }}</span>
-+          </li>
-+        </ul>
-+      </div>
-+      <div :class="$style.footer">
-+        <base-btn :class="$style.btn" @click="handleClose">{{ $t('btn_close') }}</base-btn>
+         <ul v-else :class="$style.list">
+           <li v-for="item in list" :key="item.key" :class="$style.item">
+             <base-checkbox
+@@ -36,7 +39,7 @@
+       </div>
+       <div :class="$style.footer">
+         <base-btn :class="$style.btn" @click="handleClose">{{ $t('btn_close') }}</base-btn>
+-        <base-btn :class="$style.btn" :disabled="disabled || loading || !!loadError" @click="handleImport">{{ btnText }}</base-btn>
 +        <base-btn :class="$style.btn" :disabled="disabled || loading || !!loadError || !selected.length" @click="handleImport">{{ btnText }}</base-btn>
-+      </div>
-+    </main>
-+  </material-modal>
-+</template>
-+
-+<script>
-+import { dialog } from '@renderer/plugins/Dialog'
-+import { httpFetch } from '@renderer/utils/request'
+       </div>
+     </main>
+   </material-modal>
+@@ -45,13 +48,18 @@
+ <script>
+ import { dialog } from '@renderer/plugins/Dialog'
+ import { httpFetch } from '@renderer/utils/request'
+-import { importUserApi } from '@renderer/utils/ipc'
 +import { importUserApi, probeUserApis, removeUserApi, warmProbeWindows } from '@renderer/utils/ipc'
-+import { userApi } from '@renderer/store'
+ import { userApi } from '@renderer/store'
 +import { appSetting } from '@renderer/store/setting'
 +import { setUserApi } from '@renderer/core/apiSource'
-+import { setProbeRanking } from '@renderer/core/userApiSourceCache'
-+
-+const RAW_BASE = 'https://raw.githubusercontent.com/pdone/lx-music-source'
-+const PROXY_BASE = 'https://ghproxy.net/raw.githubusercontent.com/pdone/lx-music-source'
-+const HEALTH_PATH = '/health-status/health-state.json'
-+const SOURCE_PATH = '/main'
-+
-+const statusClass = (status) => {
-+  switch (status) {
-+    case '可用': return 'available'
-+    case '异常': return 'warn'
-+    default: return 'invalid'
++import { getProbeRanking, getProbeRankingAt, setProbeRanking } from '@renderer/core/userApiSourceCache'
+ 
+ const RAW_BASE = 'https://raw.githubusercontent.com/pdone/lx-music-source'
+ const PROXY_BASE = 'https://ghproxy.net/raw.githubusercontent.com/pdone/lx-music-source'
+ const HEALTH_PATH = '/health-status/health-state.json'
+ const SOURCE_PATH = '/main'
++// 复用上次测速结果的最长时差：只覆盖“连续重复导入”，隔夜或隔太久一律重新探测
++const PROBE_REUSE_TTL = 2 * 60 * 1000
+ 
+ const statusClass = (status) => {
+   switch (status) {
+@@ -60,6 +68,17 @@ const statusClass = (status) => {
+     default: return 'invalid'
+   }
+ }
++const truncateInfo = (text, len) => text.length > len ? text.substring(0, len) + '...' : text
++// 从脚本头部注释读取 @name/@author（与后端 utils.ts 的截断规则一致），用于把目录 key 映射到已安装源
++const parseScriptHeader = (script) => {
++  const block = /^\/\*[\s\S]*?\*\//.exec(script)?.[0] ?? ''
++  const name = /@name\s+(.+)/.exec(block)
++  const author = /@author\s+(.+)/.exec(block)
++  return {
++    name: name ? truncateInfo(name[1].trim(), 24) : '',
++    author: author ? truncateInfo(author[1].trim(), 56) : '',
 +  }
 +}
-+
-+export default {
-+  props: {
-+    show: {
-+      type: Boolean,
-+      default: false,
-+    },
-+  },
+ 
+ export default {
+   props: {
+@@ -68,7 +87,7 @@ export default {
+       default: false,
+     },
+   },
+-  emits: ['update:show'],
 +  emits: ['update:show', 'import-start', 'import-done'],
-+  data() {
-+    return {
-+      onlyAvailable: true,
-+      useProxy: false,
-+      list: [],
-+      selected: [],
-+      updatedAt: '',
-+      loading: false,
-+      loadError: '',
-+      disabled: false,
-+      btnText: '',
-+    }
-+  },
-+  watch: {
-+    show(n) {
-+      if (n) void this.init()
+   data() {
+     return {
+       onlyAvailable: true,
+@@ -80,8 +99,16 @@ export default {
+       loadError: '',
+       disabled: false,
+       btnText: '',
++      probePromise: null,
+     }
+   },
++  computed: {
++    // 描述拆成两行：第一行跟勾选项，第二行是状态更新时间
++    tip() {
++      const [desc, updated] = this.$t('user_api_one_click__tip', { time: this.updatedAt || '-' }).split('\n')
++      return { desc, updated }
 +    },
 +  },
-+  methods: {
-+    handleClose() {
-+      this.$emit('update:show', false)
+   watch: {
+     show(n) {
+       if (n) void this.init()
+@@ -129,40 +156,156 @@ export default {
+     },
+     applyDefaultSelect(onlyAvailable = this.onlyAvailable) {
+       this.selected = this.list
+-        .filter(item => !onlyAvailable || item.status === '可用')
++        .filter(item => !onlyAvailable || item.status !== '失效')
+         .map(item => item.key)
+     },
+     handleOnlyAvailableChange(onlyAvailable) {
+       this.applyDefaultSelect(onlyAvailable)
+     },
++    // 仅当“刚刚”测过、且已装源集合与上次结果一致时才复用缓存，避免重复导入重复整体探测
++    cacheMatchesCurrentList() {
++      const cached = getProbeRanking()
++      if (!cached.length) return false
++      if (Date.now() - getProbeRankingAt() > PROBE_REUSE_TTL) return false
++      const cur = userApi.list.map(api => api.id).sort().join(',')
++      return cached.map(r => r.id).sort().join(',') === cur
 +    },
-+    fetchText(url) {
-+      return httpFetch(url, { timeout: 20_000 }).promise.then(resp => resp.body)
-+    },
-+    async fetchHealth() {
-+      let lastErr
-+      for (const base of [RAW_BASE, PROXY_BASE]) {
-+        try {
-+          const body = await this.fetchText(base + HEALTH_PATH)
-+          return typeof body === 'string' ? JSON.parse(body) : body
-+        } catch (err) {
-+          lastErr = err
-+        }
+     async handleImport() {
+       if (!this.selected.length) return
+-      if (userApi.list.length + this.selected.length > 20) {
+-        void dialog(this.$t('user_api__max_tip'))
+-        return
+-      }
+       this.disabled = true
+-      this.btnText = this.$t('user_api_import_online__input_loading')
+       const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
+-      let ok = 0
++
++      // 导入一开始就并行探测当前已装源；若本机已有同一批已装源的测速结果则直接复用，不再重复探测
++      if (!this.cacheMatchesCurrentList()) {
++        this.probePromise = probeUserApis()
++        this.probePromise.catch(() => {})
 +      }
-+      throw lastErr
-+    },
-+    async init() {
-+      this.loading = true
-+      this.loadError = ''
-+      this.list = []
-+      this.selected = []
-+      this.updatedAt = ''
-+      this.onlyAvailable = true
-+      this.useProxy = false
-+      this.disabled = false
-+      this.btnText = this.$t('user_api_one_click__import')
-+      try {
-+        const data = await this.fetchHealth()
-+        this.list = Object.entries(data.sources || {}).map(([key, status]) => ({ key, status, cls: statusClass(status) }))
-+        this.updatedAt = data.updated_at || ''
-+        this.applyDefaultSelect()
-+      } catch (err) {
-+        this.loadError = this.$t('user_api_one_click__load_failed', { message: err.message })
-+      } finally {
-+        this.loading = false
-+      }
-+    },
-+    applyDefaultSelect(onlyAvailable = this.onlyAvailable) {
-+      this.selected = this.list
-+        .filter(item => !onlyAvailable || item.status === '可用')
-+        .map(item => item.key)
-+    },
-+    handleOnlyAvailableChange(onlyAvailable) {
-+      this.applyDefaultSelect(onlyAvailable)
-+    },
-+    async handleImport() {
-+      if (!this.selected.length) return
-+      this.disabled = true
-+      this.btnText = this.$t('user_api_import_online__input_loading')
-+      const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
++
 +      this.$emit('import-start')
 +      this.handleClose()
 +      let added = 0
@@ -2914,14 +2924,18 @@ index 0000000..988b500
 +      let skipped = 0
 +      let reachLimit = false
 +      let finalList = userApi.list
-+      const fails = []
-+      for (const key of this.selected) {
-+        try {
-+          const script = await this.fetchText(`${base}/${key}/latest.js`)
+       const fails = []
+       for (const key of this.selected) {
+         try {
+           const script = await this.fetchText(`${base}/${key}/latest.js`)
+-          const { apiList } = await importUserApi(script)
+-          userApi.list = apiList
+-          ok++
 +          const { apiList, updated: isUpdate } = await importUserApi(script)
 +          finalList = apiList
 +          isUpdate ? updated++ : added++
-+        } catch (err) {
+         } catch (err) {
+-          fails.push(`${key}: ${err.message}`)
 +          const message = err.message || ''
 +          // 后端按「作者+名字+version」去重：同版本跳过；同名同作者的新版本覆盖更新；达到 20 上限则停止
 +          // shortcut: 靠后端中文错误文案判定类型（IPC 会丢弃自定义错误码），改文案需同步这里
@@ -2934,32 +2948,52 @@ index 0000000..988b500
 +            break
 +          }
 +          fails.push(`${key}: ${message}`)
-+        }
-+      }
+         }
+       }
+-      this.disabled = false
+-      this.btnText = this.$t('user_api_one_click__import')
+-      this.handleClose()
+-      if (fails.length) {
+-        void dialog(this.$t('user_api_one_click__import_result', { ok, fail: fails.length, detail: fails.join('\n') }))
 +      userApi.list = finalList
 +      this.$emit('import-done')
-+      if (reachLimit) {
-+        void dialog(this.$t('user_api__max_tip'))
-+      } else if (fails.length) {
-+        void dialog(this.$t('user_api_one_click__import_result', { ok: added + updated, fail: fails.length, detail: fails.join('\n') }))
-+      } else if (updated || skipped) {
-+        void dialog(this.$t('user_api_one_click__import_summary', { add: added, update: updated, skip: skipped }))
-+      } else {
-+        void dialog(this.$t('user_api_one_click__import_success', { ok: added }))
++      // 若本次有新增/更新，早前启动的探测已过期，重新探测以保证“最稳定源”准确
++      if (added || updated) {
++        this.probePromise = probeUserApis()
++        this.probePromise.catch(() => {})
 +      }
++      if (reachLimit) {
++        await dialog(this.$t('user_api__max_tip'))
++      } else if (fails.length) {
++        await dialog(this.$t('user_api_one_click__import_result', { ok: added + updated, fail: fails.length, detail: fails.join('\n') }))
++      } else if (updated || skipped) {
++        await dialog(this.$t('user_api_one_click__import_summary', { add: added, update: updated, skip: skipped }))
++      } else {
++        await dialog(this.$t('user_api_one_click__import_success', { ok: added }))
++      }
++      await this.confirmRemoveInvalidByHealth()
 +      if (userApi.list.length) void this.autoProbeAndSelect()
 +    },
 +    async autoProbeAndSelect() {
 +      let results
-+      try {
-+        results = await probeUserApis()
-+        setProbeRanking(results)
-+        const warmIds = results.filter(r => r.ok > 0).slice(0, 4).map(r => r.id)
-+        if (warmIds.length) void warmProbeWindows(warmIds)
-+      } catch (err) {
-+        void dialog(this.$t('user_api_probe__failed', { message: err.message }))
-+        return
++      if (!this.probePromise && this.cacheMatchesCurrentList()) {
++        // 已装源未变：直接复用上次测速结果，弹窗立即出现（重复导入不再等待探测）
++        results = getProbeRanking()
++      } else {
++        try {
++          results = await (this.probePromise ?? probeUserApis())
++          this.probePromise = null
++          setProbeRanking(results)
++          const warmIds = results.filter(r => r.ok > 0).map(r => r.id)
++          if (warmIds.length) void warmProbeWindows(warmIds)
++        } catch (err) {
++          this.probePromise = null
++          if (this.$route?.path === '/setting' && !document.hidden) void dialog(this.$t('user_api_probe__failed', { message: err.message }))
++          return
++        }
 +      }
++      // 探测耗时较长，若用户已离开设置页（或窗口不在前台），静默放弃后续切换与提示，避免打扰
++      if (this.$route?.path !== '/setting' || document.hidden) return
 +      const available = results.filter(r => r.ok > 0)
 +      if (!available.length) {
 +        // 全部探测失败，可能只是本机网络问题，此时不提供“清理失效源”，避免误删
@@ -2973,138 +3007,86 @@ index 0000000..988b500
 +      const currentInvalid = !current || (/^user_api/.test(current) && (!cur || cur.ok === 0))
 +      const rate = Math.round(best.okRate * 100)
 +      const ms = best.avgMs ?? best.bestMs ?? '-'
-+      if (currentInvalid && best.id !== current) {
++      const isSwitch = currentInvalid && best.id !== current
++      if (isSwitch) {
 +        try {
 +          await setUserApi(best.id)
 +        } catch (err) {
 +          console.log(err)
 +        }
-+        void dialog(this.$t('user_api_probe__done_switch', { name: best.name, rate, ms }))
-+      } else {
-+        void dialog(this.$t('user_api_probe__done_keep', { name: best.name, rate, ms }))
 +      }
-+      // 有可用源作参照（说明网络正常），再询问是否移除确认失效的已安装源
-+      await this.confirmRemoveInvalid(results)
++      if (isSwitch) {
++        await dialog(this.$t('user_api_probe__done_switch', { name: best.name, rate, ms }))
+       } else {
+-        void dialog(this.$t('user_api_one_click__import_success', { ok }))
++        await dialog(this.$t('user_api_probe__done_keep', { name: best.name, rate, ms }))
++      }
 +    },
-+    async confirmRemoveInvalid(results) {
++    async confirmRemoveInvalidByHealth() {
++      const invalidKeys = this.list.filter(item => item.status === '失效').map(item => item.key)
++      if (!invalidKeys.length) return
 +      const active = appSetting['common.apiSource'] || ''
-+      // 失效 = 提取到上游主机但全部探测失败；跳过当前正在使用的源；hosts=0(无法判定)不处理
-+      const invalid = results.filter(item => item.status === '失效' && item.hosts > 0 && item.id !== active)
-+      if (!invalid.length) return
++      const base = (this.useProxy ? PROXY_BASE : RAW_BASE) + SOURCE_PATH
++      const ids = []
++      const names = []
++      for (const key of invalidKeys) {
++        try {
++          const info = parseScriptHeader(await this.fetchText(`${base}/${key}/latest.js`))
++          const installed = userApi.list.find(item => item.name === info.name && (item.author ?? '') === info.author)
++          if (installed && installed.id !== active) {
++            ids.push(installed.id)
++            names.push(installed.name)
++          }
++        } catch (err) {
++          // 单个脚本拉取失败跳过，不影响其它失效源判断
++        }
++      }
++      if (!ids.length) return
 +      const isConfirm = await dialog.confirm(this.$t('user_api_one_click__remove_invalid_confirm', {
-+        count: invalid.length,
-+        names: invalid.map(item => item.name).join('、'),
++        count: ids.length,
++        names: names.join('、'),
 +      }))
 +      if (!isConfirm) return
 +      try {
-+        userApi.list = await removeUserApi(invalid.map(item => item.id))
-+        void dialog(this.$t('user_api_one_click__remove_invalid_done', { count: invalid.length }))
++        userApi.list = await removeUserApi(ids)
++        await dialog(this.$t('user_api_one_click__remove_invalid_done', { count: ids.length }))
 +      } catch (err) {
 +        console.log(err)
-+      }
-+    },
-+  },
+       }
+     },
+   },
+@@ -195,16 +338,23 @@ export default {
+ .option {
+   font-size: 14px;
+   opacity: .9;
+-  + .option {
+-    margin-top: 8px;
+-  }
+ }
+-.tip {
+-  margin-top: 10px;
++.optionGap {
++  margin-top: 8px;
 +}
-+</script>
-+
-+<style lang="less" module>
-+@import '@renderer/assets/styles/layout.less';
-+
-+.main {
-+  padding: 0 15px;
-+  width: 450px;
-+  min-width: 280px;
-+  display: flex;
-+  flex-flow: column nowrap;
-+  min-height: 0;
-+  max-height: 80vh;
-+  h2 {
-+    font-size: 16px;
-+    color: var(--color-font);
-+    line-height: 1.3;
-+    text-align: center;
-+    padding: 15px 0 10px;
-+  }
-+}
-+.options {
-+  display: flex;
-+  flex-flow: column nowrap;
-+}
-+.option {
-+  font-size: 14px;
-+  opacity: .9;
-+  + .option {
-+    margin-top: 8px;
-+  }
++.optionTip {
++  margin: 4px 0 0 19px; // 对齐勾选框标签：1em 复选框宽 + 5px 间距
+   font-size: 12px;
+   line-height: 1.4;
+   color: var(--color-font-label);
 +}
 +.tip {
-+  margin-top: 10px;
-+  font-size: 12px;
++  margin: 0 0 10px;
++  font-size: 13px;
 +  line-height: 1.4;
 +  color: var(--color-font-label);
-+  white-space: pre-line;
-+}
-+.content {
-+  flex: auto;
-+  min-height: 80px;
-+  margin-top: 10px;
-+  overflow-y: auto;
-+}
-+.empty {
-+  height: 100px;
-+  font-size: 14px;
-+  color: var(--color-font-label);
-+  display: flex;
-+  justify-content: center;
-+  align-items: center;
+   white-space: pre-line;
 +  text-align: center;
-+  white-space: pre-line;
-+  padding: 0 10px;
-+}
-+.list {
-+  padding: 0 2px;
-+}
-+.item {
-+  display: flex;
-+  flex-flow: row nowrap;
-+  align-items: center;
-+  justify-content: space-between;
-+  padding: 8px 6px;
-+  border-radius: @radius-border;
-+  &:hover {
-+    background-color: var(--color-primary-background-hover);
-+  }
-+}
-+.itemCheckbox {
-+  font-size: 14px;
-+}
-+.status {
-+  flex: none;
-+  font-size: 12px;
-+  margin-left: 10px;
-+  &.available {
-+    color: var(--color-primary);
-+  }
-+  &.warn {
-+    color: #e6a23c;
-+  }
-+  &.invalid {
-+    color: #f56c6c;
-+  }
-+}
-+.footer {
-+  margin: 15px 0 15px auto;
-+}
-+.btn {
-+  min-width: 70px;
-+  + .btn {
-+    margin-left: 10px;
-+  }
-+}
-+</style>
+ }
+ .content {
+   flex: auto;
 diff --git a/src/renderer/views/Setting/components/UserApiProbeModal.vue b/src/renderer/views/Setting/components/UserApiProbeModal.vue
 new file mode 100644
-index 0000000..959f2cf
+index 0000000..e321e2f
 --- /dev/null
 +++ b/src/renderer/views/Setting/components/UserApiProbeModal.vue
 @@ -0,0 +1,315 @@
@@ -3211,7 +3193,7 @@ index 0000000..959f2cf
 +      try {
 +        const results = await probeUserApis()
 +        setProbeRanking(results)
-+        const warmIds = results.filter(r => r.ok > 0).slice(0, 4).map(r => r.id)
++        const warmIds = results.filter(r => r.ok > 0).map(r => r.id)
 +        if (warmIds.length) void warmProbeWindows(warmIds)
 +        this.list = [...results].sort((a, b) => {
 +          const an = a.avgMs == null ? 1 : 0
