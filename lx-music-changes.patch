@@ -1694,7 +1694,7 @@ index 0000000..0d5aa7d
 +  return { highlightIndex, canLocateCurrent, handleLocateCurrentPlay }
 +}
 diff --git a/src/renderer/core/player/action.ts b/src/renderer/core/player/action.ts
-index 88995d0..fabd0af 100644
+index 88995d0..51a63c7 100644
 --- a/src/renderer/core/player/action.ts
 +++ b/src/renderer/core/player/action.ts
 @@ -13,6 +13,11 @@ import {
@@ -1827,8 +1827,8 @@ index 88995d0..fabd0af 100644
      if (err.message == requestMsg.tooManyRequests) return delayRetry(musicInfo, isRefresh)
  
 -    if (!isRetryed) return getMusicPlayUrl(musicInfo, isRefresh, true)
-+    // 开启自动换源且当前是自定义源时，跳过对同一源的再次重试，直接进入换源/放弃流程（更快）
-+    if (!isRetryed && !(appSetting['player.autoSwitchUserApiOnError'] && isUserApiId(apiSource.value))) {
++    // 先对同一源重试一次（多为临时取链失败），仍失败再进入换源/放弃流程
++    if (!isRetryed) {
 +      return getMusicPlayUrl(musicInfo, isRefresh, true, triedApiSources, originApiId)
 +    }
  
@@ -1900,7 +1900,7 @@ index 4042667..e60c223 100644
        console.log(err)
      })
 diff --git a/src/renderer/core/useApp/usePlayer/usePlayEvent.ts b/src/renderer/core/useApp/usePlayer/usePlayEvent.ts
-index 5401f45..f1d5b6a 100644
+index 5401f45..3480c76 100644
 --- a/src/renderer/core/useApp/usePlayer/usePlayEvent.ts
 +++ b/src/renderer/core/useApp/usePlayer/usePlayEvent.ts
 @@ -1,8 +1,10 @@
@@ -1996,7 +1996,7 @@ index 5401f45..f1d5b6a 100644
    }
  
    const handleEmpied = () => {
-@@ -81,12 +142,14 @@ export default () => {
+@@ -81,11 +142,12 @@ export default () => {
      setAllStatus(t('player__buffering'))
    }
  
@@ -2006,14 +2006,11 @@ index 5401f45..f1d5b6a 100644
      clearLoadingTimeout()
      if (window.lx.isPlayedStop) return
      if (!isEmpty()) setStop()
--    if (playMusicInfo.musicInfo && errCode !== 1 && retryNum < 2) { // 若音频URL无效则尝试刷新2次URL
-+    // 开启自动换源且当前是自定义源时，跳过“对同一源刷新2次”（往往还是坏链接），直接进并行换源
-+    const canSwitchSource = appSetting['player.autoSwitchUserApiOnError'] && /^user_api/.test(apiSource.value || '')
-+    if (playMusicInfo.musicInfo && errCode !== 1 && retryNum < 2 && !canSwitchSource) { // 若音频URL无效则尝试刷新2次URL
++    // 先尝试刷新同一源的URL（多为链接过期/临时失效，刷新即可恢复并续播），仍失败再换源
+     if (playMusicInfo.musicInfo && errCode !== 1 && retryNum < 2) { // 若音频URL无效则尝试刷新2次URL
        // console.log(this.retryNum)
        retryNum++
-       setMusicUrl(playMusicInfo.musicInfo, true)
-@@ -94,6 +157,28 @@ export default () => {
+@@ -94,6 +156,28 @@ export default () => {
        return
      }
  
@@ -2042,7 +2039,7 @@ index 5401f45..f1d5b6a 100644
      if (appSetting['player.autoSkipOnError']) {
        if (document.hidden) {
          console.warn('error skip to next')
-@@ -108,6 +193,9 @@ export default () => {
+@@ -108,6 +192,9 @@ export default () => {
    const handleSetPlayInfo = () => {
      retryNum = 0
      prevTimeoutId = null
@@ -2052,7 +2049,7 @@ index 5401f45..f1d5b6a 100644
      clearDelayNextTimeout()
      clearLoadingTimeout()
    }
-@@ -118,7 +206,10 @@ export default () => {
+@@ -118,7 +205,10 @@ export default () => {
    // }
  
  
@@ -2063,7 +2060,7 @@ index 5401f45..f1d5b6a 100644
    window.app_event.on('playerLoadeddata', handleLoadeddata)
    window.app_event.on('playerPlaying', handlePlaying)
    window.app_event.on('playerWaiting', handleWating)
-@@ -128,6 +219,7 @@ export default () => {
+@@ -128,6 +218,7 @@ export default () => {
  
    onBeforeUnmount(() => {
      window.app_event.off('playerLoadstart', handleLoadstart)
